@@ -1,0 +1,2 @@
+Programme permettant d'extraire des données et de le stocker sous forme de fichier texte depuis une image (par exemple une capture d'écran d'une courbe d'un article, ou même un croquis de courbe fait sur Paint).
+Il suffit de l'image en question (en effaçant en blanc tout ce qui est 'au-dessus' de la courbe), et de spécifier les bornes du graphique dans le titre de l'image à traiter.
