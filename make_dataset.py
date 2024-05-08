@@ -5,9 +5,25 @@ import re
 import numpy as np
 import glob
 
+user = input(input("Who are you? Nathalie, Océane, Tom, Thibault"))
 
 ## PATHS
-PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
+if (user == "Nathalie"):      
+    #Nathalie
+    PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
+elif (user == "Océane"):
+    #Océane
+    PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
+elif (user == "Tom"):
+    print("Error:Need to create your path")
+    exit()
+elif (user == "Thibault"):
+    print("Error:Need to create your path")
+    exit()
+else:
+    print("Error: Invalid user input.")
+    exit()
+
 
 PATH_OUTPUT = PATH_FOLDER + '\\Plots'
 PATH_RAW_DATA = PATH_FOLDER + '\\Data\\Raw'
@@ -199,9 +215,8 @@ def load_raw_data(chip_name, graph_type_list, geom_param_df, process_param_df):
 # Loads and returns data for a specific file and graph type
 def load_interim_data(interim_file_name, graph_type):
     # filename: chip name _ geometrical parameters _ capa placement _ process parameters
-    
     chip_name = interim_file_name.split("_")[0]
-    file_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + interim_file_name
+    file_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + interim_file_name + ".xlsx"
 
     # Load the specific sheet into a DataFrame
     data_df = pd.read_excel(file_path, sheet_name=graph_type)
@@ -244,6 +259,76 @@ def select_capas_with_parameter(file_names, process_experience="", geom_experien
 
     return selected_files
 
+# ---------------- FUNCTION FOR RESULT
+
+#***** Function: Polarisation *****
+# Input: file name, specific graph type that we want 
+# Output: Remanent polarisation positive and negative
+def Polarisation(name_file, graph_type):
+    data = load_interim_data(name_file, graph_type)
+
+    size = name_file.split('_')[1]
+    area = (int(size)*10**(-6))**2
+
+    charge_ma = max(data['Charge'])
+    charge_mi = min(data['Charge'])
+    diff_charge = (charge_ma + charge_mi)/2
+
+    debut_phase2 = 200 
+    fin_phase2 = 600
+    df_phase2 = data.iloc[debut_phase2:fin_phase2]
+    indice_zero = (df_phase2['Vforce'] - 0).abs().idxmin()
+    courant_en_zero_pos = df_phase2.loc[indice_zero, 'Charge']
+
+    debut_phase = 600 
+    size_table = len(data)-1
+    df_phase3 = data.iloc[debut_phase:size_table]
+    indice_zero_2 = (df_phase3['Vforce'] - 0).abs().idxmin()
+    courant_en_zero_neg = df_phase3.loc[indice_zero_2, 'Charge']
+
+    pol_max = (courant_en_zero_pos - diff_charge) / area * 10**2
+    pol_min = (courant_en_zero_neg - diff_charge) / area * 10**2
+    return pol_max, pol_min
+
+#***** Function: Coercive field *****
+# Input: file name, specific graph type that we want 
+# Output: Coercive field positive and negative
+def Coercive(name_file, graph_type):
+    data = load_interim_data(name_file, graph_type)
+
+    charge_ma = max(data['Charge'])
+    charge_mi = min(data['Charge'])
+    diff_charge = (charge_ma + charge_mi)/2
+
+    debut_phase2 = 200 
+    fin_phase2 = 600
+    df_phase2 = data.iloc[debut_phase2:fin_phase2]
+    indice_zero = (df_phase2['Charge'] - diff_charge).abs().idxmin()
+    Volt_en_zero_pos = df_phase2.loc[indice_zero, 'Vforce']
+
+    fin_phase = 200  
+    df_phase3 = data.iloc[0:fin_phase]
+    indice_zero_2 = (df_phase3['Charge'] - diff_charge).abs().idxmin()
+    Volt_en_zero_neg = df_phase3.loc[indice_zero_2, 'Vforce']
+
+    Co_max = Volt_en_zero_pos
+    Co_min = Volt_en_zero_neg
+    return Co_max, Co_min
+
+#***** Function: Leakage current*****
+# Input: file name, specific graph type that we want 
+# Output: Leakage current positive and negative
+def Leakage_current(name_file):
+    data = load_interim_data(name_file, "IV 3V_1#1")
+
+    indice_trois = (data['AV'] - 3).abs().idxmin()
+    leak_max = data.loc[indice_trois, 'AI']
+
+    indice_trois_min = (data['AV'] + 3).abs().idxmin()
+    leak_min = data.loc[indice_trois_min, 'AI']
+
+    return leak_max, leak_min
+
 ## --------------- MAIN BLOCK
 # load parameters
 process_param_df = load_process_param_df()
@@ -269,9 +354,24 @@ print("\nList of all possible combination of experiences:\n", exp_list_all)
 
 ### PRE-PROCESS FILES AND STORED INTO INTERIM FOLDER
 chip_names = process_param_df.index
-chip_names = ['3dec11'] ## select which chips to load
+chip_names = ['3dec11', '3dec09', '3dec17'] ## select which chips to load
+
+
 for chip in chip_names:
-    interim_files = load_raw_data(chip, LIST_GRAPH_IMPORTANT, geom_param_df, process_param_df)
+    chip_interim_path = os.path.join(PATH_INTERIM_DATA, chip)
+    if os.path.exists(chip_interim_path):
+        print(f"Interim data already exists for chip '{chip}'. Skipping loading raw data.")
+        # interim_files = load_raw_data(chip, LIST_GRAPH_IMPORTANT, geom_param_df, process_param_df)
+    else:
+        interim_files = load_raw_data(chip, LIST_GRAPH_IMPORTANT, geom_param_df, process_param_df)
+
+xlsx_files = []
+for root, dirs, files in os.walk(PATH_INTERIM_DATA):
+    for file in files:
+        if file.endswith(".xlsx"):
+            xlsx_files.append(os.path.splitext(file)[0])
+
+interim_files = xlsx_files
 
 selected_files = select_capas_with_parameter(interim_files, "DP-450-120")
 print("\nSelected files: ", selected_files)
@@ -280,47 +380,38 @@ selected_files = select_capas_with_parameter(interim_files, "DP-450-120", "50")
 print("\nSelected files of size 50: ", selected_files)
 
 
-### CALCULATIONS
-result_df = pd.DataFrame(columns=["Experience","Polarisation", "Leakage", "etc."])
+### CALCULATIONS + STORE RESULT
+test_exp = []
+for chip in chip_names:
+    test_exp.append(get_experience_from_chip(chip, process_param_df))
+#exp_list_process
 
-for exp in exp_list_process:
-    # calculate data for each exp
+for exp in test_exp:
+    result_df = pd.DataFrame(columns=["Geometrie - Placement", "Polarisation", "Leakage", "Coercive"])
 
+    table_experience = select_capas_with_parameter(interim_files, process_experience=exp)
+    GeoPlac_table = []
+    Pol_table = []
+    Leak_table = []
+    Coe_table = []
+    for name_file in table_experience:
+        GeoPlac_table.append(name_file.split("_")[1] + "_" + name_file.split("_")[2])
+        Pol_table.append(Polarisation(name_file, "P-V 4V_2#1")[0])
+        Leak_table.append(Leakage_current(name_file)[0])
+        Coe_table.append(Coercive(name_file, "P-V 4V_2#1")[0])
 
+    result_df["Geometrie - Placement"] = GeoPlac_table
+    result_df["Polarisation"] = Pol_table
+    result_df["Leakage"] = Leak_table
+    result_df["Coercive"] = Coe_table
 
+    ### STORE RESULT DF TO FILE IN PROCESSED FOLDER
+    new_path = PATH_PROCESSED_DATA + "\\" + exp + ".xlsx"
+    os.makedirs(os.path.dirname(new_path), exist_ok=True)
 
-
-
-
-
-
-    # add to df
-    new_row = {'Experience': 10, 'Polarisation': 20, 'Leakage': 30, 'etc.': 40}
-    result_df = result_df.append(new_row, ignore_index=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### STORE RESULT DF TO FILE IN PROCESSED FOLDER
-new_path = PATH_PROCESSED_DATA + "\\Results.xlsx"
-
-# Create the directory structure if it doesn't exist
-os.makedirs(os.path.dirname(new_path), exist_ok=True)
-
-# Create a Pandas ExcelWriter object
-if os.path.exists(new_path):
-    with pd.ExcelWriter(new_path, engine='openpyxl', mode='a',if_sheet_exists='replace') as writer:
-        result_df.to_excel(writer, index=False)
-else:
-    with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
-        result_df.to_excel(writer, index=False)
+    if os.path.exists(new_path):
+        with pd.ExcelWriter(new_path, engine='openpyxl', mode='a',if_sheet_exists='replace') as writer:
+            result_df.to_excel(writer, index=False)
+    else:
+        with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
+            result_df.to_excel(writer, index=False)
