@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import re
 import numpy as np
-from scipy.signal import find_peaks
+import glob
 
 
 ## PATHS
@@ -13,8 +13,8 @@ PATH_OUTPUT = PATH_FOLDER + '\\Plots'
 PATH_RAW_DATA = PATH_FOLDER + '\\Data\\Raw'
 PATH_INTERIM_DATA = PATH_FOLDER + '\\Data\\Interim'
 PATH_PROCESSED_DATA = PATH_FOLDER + '\\Data\\Processed'
-PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\Code\\process_parameter.xlsx'
-PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\Code\\geometrical_parameter.xlsx'
+PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
+PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 
 ## GRAPH TYPES
 LIST_GRAPH_ALL = ["P-V 1V_1#1", "P-V 1V_2#1", "P-V 2V_1#1", "P-V 2V_2#1", "P-V 3V_1#1", "P-V 3V_2#1", 
@@ -150,19 +150,18 @@ def load_raw_data(chip_name, graph_type_list, geom_param_df, process_param_df):
     xls_file_paths = []
     xls_file_names = []
 
-    chip_found = False
-    # Iterate over the directory structure using os.walk()
-    for root, _, files in os.walk(PATH_RAW_DATA):
-        # Check if the current directory's name matches the specific subfolder name
-        if os.path.basename(root) == chip_name:
-            chip_found = True
-            print("Found the subfolder:", root)
-            for file in files: # Iterate over the files in the current directory
+    pattern = os.path.join(PATH_RAW_DATA, "**", chip_name) # Construct the pattern to search for the specific subfolder name
+    directories = glob.glob(pattern)  # Use glob to search for directories matching the pattern
+    if directories: # Check if any directories were found
+        for dir in directories:
+            print("Found the subfolder:", dir)
+            files_in_directory = os.listdir(dir)
+            for file in files_in_directory: # Iterate over the files in the current directory
                 if file.endswith('.xls'): # Check if the file has a .xls extension
-                    xls_file_paths.append(os.path.join(root, file)) 
+                    xls_file_paths.append(os.path.join(dir, file)) 
                     xls_file_names.append(file) 
 
-    if not chip_found:
+    else:
         print("\nERROR: chip", chip_name, "was not found\n")
 
     # for each file of a specific chip:
@@ -196,7 +195,8 @@ def load_raw_data(chip_name, graph_type_list, geom_param_df, process_param_df):
     print("\n****** Chip:",chip_name,"- Raw data loaded and interim data saved ******\n")
     return interim_files_stored
 
-
+#***** Function: load_interim_data *****
+# Loads and returns data for a specific file and graph type
 def load_interim_data(interim_file_name, graph_type):
     # filename: chip name _ geometrical parameters _ capa placement _ process parameters
     
@@ -208,7 +208,10 @@ def load_interim_data(interim_file_name, graph_type):
 
     return data_df
 
-# the function below has not been tested yet
+#***** Function: select_capas_with_parameter *****
+# Input: list of all file names, a specific process experience, a specific geometry experience
+# Output: list of selected files names which correspond do the given process and geometry experience
+# Note: indicate "" if you don't want to give a process or geometry
 def select_capas_with_parameter(file_names, process_experience="", geom_experience=""):
     correct_process_files = []
     selected_files = []
@@ -239,16 +242,85 @@ def select_capas_with_parameter(file_names, process_experience="", geom_experien
     if not geom_found:
         print("\nERROR: capacitors with geometry parameter", geom_experience, "were not found\n")
 
-    return
+    return selected_files
 
-## MAIN BLOCK
+## --------------- MAIN BLOCK
+# load parameters
 process_param_df = load_process_param_df()
 geom_param_df = load_geom_param_df()
 
+
+# get list of experiences
+exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.tolist()]
+exp_list_process = np.unique(exp_list_process)
+exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.tolist()]
+exp_list_geometry = np.unique(exp_list_geometry)
+
+print("\nList of all possible process experiences:\n", exp_list_process)
+print("\nList of all possible geometry experiences:\n", exp_list_geometry)
+
+exp_list_all = []
+for process in exp_list_process:
+    for geom in exp_list_geometry:
+        exp_list_all.append(geom + "_" + process)
+print("\nList of all possible combination of experiences:\n", exp_list_all)
+
+
+
+### PRE-PROCESS FILES AND STORED INTO INTERIM FOLDER
 chip_names = process_param_df.index
-chip_name = "3dec11"
-interim_files = load_raw_data(chip_name, LIST_GRAPH_IMPORTANT, geom_param_df, process_param_df)
-print(interim_files)
+chip_names = ['3dec11'] ## select which chips to load
+for chip in chip_names:
+    interim_files = load_raw_data(chip, LIST_GRAPH_IMPORTANT, geom_param_df, process_param_df)
+
+selected_files = select_capas_with_parameter(interim_files, "DP-450-120")
+print("\nSelected files: ", selected_files)
+
+selected_files = select_capas_with_parameter(interim_files, "DP-450-120", "50")
+print("\nSelected files of size 50: ", selected_files)
+
+
+### CALCULATIONS
+result_df = pd.DataFrame(columns=["Experience","Polarisation", "Leakage", "etc."])
+
+for exp in exp_list_process:
+    # calculate data for each exp
 
 
 
+
+
+
+
+
+
+    # add to df
+    new_row = {'Experience': 10, 'Polarisation': 20, 'Leakage': 30, 'etc.': 40}
+    result_df = result_df.append(new_row, ignore_index=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### STORE RESULT DF TO FILE IN PROCESSED FOLDER
+new_path = PATH_PROCESSED_DATA + "\\Results.xlsx"
+
+# Create the directory structure if it doesn't exist
+os.makedirs(os.path.dirname(new_path), exist_ok=True)
+
+# Create a Pandas ExcelWriter object
+if os.path.exists(new_path):
+    with pd.ExcelWriter(new_path, engine='openpyxl', mode='a',if_sheet_exists='replace') as writer:
+        result_df.to_excel(writer, index=False)
+else:
+    with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
+        result_df.to_excel(writer, index=False)
