@@ -5,7 +5,7 @@ import re
 import numpy as np
 import glob
 
-user = input(input("Who are you? Nathalie, Océane, Tom, Thibault"))
+user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
 
 ## PATHS
 if (user == "Nathalie"):      
@@ -103,9 +103,20 @@ def get_experience_from_chip(chip_name, param_df):
 # Output: string with capa info: capa placement + geom parameters  
 def extract_capa_info(file_name, graph_type, geomParam):
     # Split the string based on the specific sequence (get everything before graph_type)
-    capa_info_raw = file_name.split("_"+graph_type)[0]
-    #print("\nGraph type:", graph_type)
-    #print("Raw capa info",capa_info_raw)
+    capa_info_raw = file_name.split(graph_type)[0]
+
+    last_char_ok = False
+    while last_char_ok == False:
+        last_char = capa_info_raw[-1]
+        if last_char == '_':
+            capa_info_raw = capa_info_raw[:-1]
+        elif last_char == ' ':
+            capa_info_raw = capa_info_raw[:-1]
+        elif last_char == '-':
+            capa_info_raw = capa_info_raw[:-1]
+        else: 
+            last_char_ok = True
+
     # Séparation
     parts = capa_info_raw.split('_')
 
@@ -218,8 +229,18 @@ def load_interim_data(interim_file_name, graph_type):
     chip_name = interim_file_name.split("_")[0]
     file_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + interim_file_name + ".xlsx"
 
-    # Load the specific sheet into a DataFrame
-    data_df = pd.read_excel(file_path, sheet_name=graph_type)
+    data_df = []
+
+    if os.path.exists(file_path): # check if file_path exists
+        with pd.ExcelFile(file_path) as xls:
+            sheet_names = xls.sheet_names
+            if graph_type in sheet_names: # check if sheet name exists
+                # Read the Excel file
+                data_df = pd.read_excel(file_path, sheet_name=graph_type)
+            else:
+                print("\nERROR: Sheet name",  graph_type ,"inexistant for capacitor", interim_file_name, "\n")
+    else:
+        print("\nERROR: File",interim_file_name,"doesn't exist in path", file_path, "\n")
 
     return data_df
 
@@ -266,28 +287,34 @@ def select_capas_with_parameter(file_names, process_experience="", geom_experien
 # Output: Remanent polarisation positive and negative
 def Polarisation(name_file, graph_type):
     data = load_interim_data(name_file, graph_type)
+    
+    pol_max = np.nan
+    pol_min = np.nan
 
-    size = name_file.split('_')[1]
-    area = (int(size)*10**(-6))**2
+    if len(data): # if data is not empty
+    
+        size = name_file.split('_')[1]
+        area = (int(size)*10**(-6))**2
 
-    charge_ma = max(data['Charge'])
-    charge_mi = min(data['Charge'])
-    diff_charge = (charge_ma + charge_mi)/2
+        charge_ma = max(data['Charge'])
+        charge_mi = min(data['Charge'])
+        diff_charge = (charge_ma + charge_mi)/2
 
-    debut_phase2 = 200 
-    fin_phase2 = 600
-    df_phase2 = data.iloc[debut_phase2:fin_phase2]
-    indice_zero = (df_phase2['Vforce'] - 0).abs().idxmin()
-    courant_en_zero_pos = df_phase2.loc[indice_zero, 'Charge']
+        debut_phase2 = 200 
+        fin_phase2 = 600
+        df_phase2 = data.iloc[debut_phase2:fin_phase2]
+        indice_zero = (df_phase2['Vforce'] - 0).abs().idxmin()
+        courant_en_zero_pos = df_phase2.loc[indice_zero, 'Charge']
 
-    debut_phase = 600 
-    size_table = len(data)-1
-    df_phase3 = data.iloc[debut_phase:size_table]
-    indice_zero_2 = (df_phase3['Vforce'] - 0).abs().idxmin()
-    courant_en_zero_neg = df_phase3.loc[indice_zero_2, 'Charge']
+        debut_phase = 600 
+        size_table = len(data)-1
+        df_phase3 = data.iloc[debut_phase:size_table]
+        indice_zero_2 = (df_phase3['Vforce'] - 0).abs().idxmin()
+        courant_en_zero_neg = df_phase3.loc[indice_zero_2, 'Charge']
 
-    pol_max = (courant_en_zero_pos - diff_charge) / area * 10**2
-    pol_min = (courant_en_zero_neg - diff_charge) / area * 10**2
+        pol_max = (courant_en_zero_pos - diff_charge) / area * 10**2
+        pol_min = (courant_en_zero_neg - diff_charge) / area * 10**2
+
     return pol_max, pol_min
 
 #***** Function: Coercive field *****
@@ -296,23 +323,28 @@ def Polarisation(name_file, graph_type):
 def Coercive(name_file, graph_type):
     data = load_interim_data(name_file, graph_type)
 
-    charge_ma = max(data['Charge'])
-    charge_mi = min(data['Charge'])
-    diff_charge = (charge_ma + charge_mi)/2
+    Co_max = np.nan
+    Co_min = np.nan
 
-    debut_phase2 = 200 
-    fin_phase2 = 600
-    df_phase2 = data.iloc[debut_phase2:fin_phase2]
-    indice_zero = (df_phase2['Charge'] - diff_charge).abs().idxmin()
-    Volt_en_zero_pos = df_phase2.loc[indice_zero, 'Vforce']
+    if len(data): # if data is not empty
+        charge_ma = max(data['Charge'])
+        charge_mi = min(data['Charge'])
+        diff_charge = (charge_ma + charge_mi)/2
 
-    fin_phase = 200  
-    df_phase3 = data.iloc[0:fin_phase]
-    indice_zero_2 = (df_phase3['Charge'] - diff_charge).abs().idxmin()
-    Volt_en_zero_neg = df_phase3.loc[indice_zero_2, 'Vforce']
+        debut_phase2 = 200 
+        fin_phase2 = 600
+        df_phase2 = data.iloc[debut_phase2:fin_phase2]
+        indice_zero = (df_phase2['Charge'] - diff_charge).abs().idxmin()
+        Volt_en_zero_pos = df_phase2.loc[indice_zero, 'Vforce']
 
-    Co_max = Volt_en_zero_pos
-    Co_min = Volt_en_zero_neg
+        fin_phase = 200  
+        df_phase3 = data.iloc[0:fin_phase]
+        indice_zero_2 = (df_phase3['Charge'] - diff_charge).abs().idxmin()
+        Volt_en_zero_neg = df_phase3.loc[indice_zero_2, 'Vforce']
+
+        Co_max = Volt_en_zero_pos
+        Co_min = Volt_en_zero_neg
+
     return Co_max, Co_min
 
 #***** Function: Leakage current*****
@@ -321,11 +353,15 @@ def Coercive(name_file, graph_type):
 def Leakage_current(name_file):
     data = load_interim_data(name_file, "IV 3V_1#1")
 
-    indice_trois = (data['AV'] - 3).abs().idxmin()
-    leak_max = data.loc[indice_trois, 'AI']
+    leak_max = np.nan
+    leak_min = np.nan
 
-    indice_trois_min = (data['AV'] + 3).abs().idxmin()
-    leak_min = data.loc[indice_trois_min, 'AI']
+    if len(data): # if data is not empty
+        indice_trois = (data['AV'] - 3).abs().idxmin()
+        leak_max = data.loc[indice_trois, 'AI']
+
+        indice_trois_min = (data['AV'] + 3).abs().idxmin()
+        leak_min = data.loc[indice_trois_min, 'AI']
 
     return leak_max, leak_min
 
@@ -351,10 +387,9 @@ for process in exp_list_process:
 print("\nList of all possible combination of experiences:\n", exp_list_all)
 
 
-
-### PRE-PROCESS FILES AND STORED INTO INTERIM FOLDER
+### PRE-PROCESS FILES AND STORED INTO INTNERIM FOLDER
 chip_names = process_param_df.index
-chip_names = ['3dec11', '3dec09', '3dec17'] ## select which chips to load
+chip_names = ['3dec11','3dec17'] ## select which chips to load
 
 
 for chip in chip_names:
@@ -378,7 +413,6 @@ print("\nSelected files: ", selected_files)
 
 selected_files = select_capas_with_parameter(interim_files, "DP-450-120", "50")
 print("\nSelected files of size 50: ", selected_files)
-
 
 ### CALCULATIONS + STORE RESULT
 test_exp = []
