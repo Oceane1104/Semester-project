@@ -106,5 +106,5 @@ def get_file_names(path,chip_names=[]):
                     if chip in chip_names:
                         interim_files.append(os.path.splitext(file)[0])
 
-    print("\n Interim_files:\n",interim_files, "\n")
+    #print("\n Interim_files:\n",interim_files, "\n")
     return interim_files
