@@ -4,6 +4,7 @@ import numpy as np
 import glob
 import time
 import xlrd
+import re
 # import functions from other python files
 from tools import extract_pattern_in_string
 from tools import get_chips_from_experience
@@ -14,9 +15,9 @@ from tools import extract_voltage_in_graphtype
 ### CHANGE IF NECESSARY
 #---graph types to load
 LIST_GRAPH = ["P-V 3V_2#1", "P-V 4V_2#1", "IV 3V_1#1", "PUND 5V_1#1", "CV 3V_1#1"]
-import re
+
 #---chips to load or calculate
-selected_chips = ['3dec11'] 
+selected_chips = ""
 #selected_chips = "" # if you want to load all chips in the process parameter file
 
 ## PATHS
@@ -133,52 +134,60 @@ def extract_capa_info_from_raw_data(file_name, graph_type, geomParam):
 #   - store data of each capacitor in one file (different sheets for the different graph types)
 # Output: list of the names of the stored interim files: chip_name + capa_placement + geom. param. of capa + process param. of capa
 def load_raw_data(chip_name, geom_param_df, process_param_df):
-
     interim_files_stored = []
 
     # Get a list of paths of all .xls files in the chip folder
     xls_file_paths = []
     xls_file_names = []
 
+    error = False
     pattern = os.path.join(PATH_RAW_DATA, "**", chip_name) # Construct the pattern to search for the specific subfolder name
     directories = glob.glob(pattern)  # Use glob to search for directories matching the pattern
     if directories: # Check if any directories were found
         for dir in directories:
-            print("Found the subfolder:", dir)
+            #print("Found the subfolder:", dir)
             files_in_directory = os.listdir(dir)
             for file in files_in_directory: # Iterate over the files in the current directory
                 if file.endswith('.xls'): # Check if the file has a .xls extension
                     xls_file_paths.append(os.path.join(dir, file)) 
                     xls_file_names.append(file) 
+        print()
 
     else:
-        print("\nERROR: chip", chip_name, "was not found\n")
+        error = True
+        print("ERROR: chip", chip_name, "was not found")
 
     
     # for each file of a specific chip, get a list of the measured capacitors:
     capa_list = []
     graph_list = []
+    file_paths = []
     for i in range(len(xls_file_names)):
         for graph_type in LIST_GRAPH: # extract graphtype -> skip if none of the searched graphtypes were found
             file_graph_type = extract_pattern_in_string(xls_file_names[i], graph_type)
+
             if file_graph_type is not None:
                 geom_plac_info = extract_capa_info_from_raw_data(xls_file_names[i], file_graph_type, geom_param_df) 
                 process_param = get_experience_from_chip(chip_name, process_param_df)
                 capa_name = chip_name + "_" + geom_plac_info + "_" + process_param 
                 capa_list.append(capa_name)
                 graph_list.append(graph_type)
+                file_paths.append(xls_file_paths[i])
     graph_list = np.array(graph_list)
     capa_list = np.array(capa_list)
+    file_paths = np.array(file_paths)
+
     capas_unique = np.unique(capa_list)
 
     # For each capa
     for capa in capas_unique:
         capa_idx = [index for index, value in enumerate(capa_list) if value == capa]
+        print("capa indexes: ", capa_idx)
         sheet_name_list = []
         data_list = []
         for idx in capa_idx:
             # load data into df
-            wb = xlrd.open_workbook(xls_file_paths[idx], logfile=open(os.devnull, 'w'))
+            wb = xlrd.open_workbook(file_paths[idx], logfile=open(os.devnull, 'w'))
             data_df = pd.read_excel(wb)
             data_list.append(data_df)
             sheet_name_list.append(graph_list[idx])
@@ -196,12 +205,13 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
                 for i in range(len(sheet_name_list)):
                     data_list[i].to_excel(writer, sheet_name=sheet_name_list[i], index=False)
         interim_files_stored.append(capa)
-        print("\nCapacitor "+ capa +" loaded")
+        print("Capacitor "+ capa +" loaded")
 
     interim_files_stored = np.unique(interim_files_stored)
-    print("\n****** Chip:",chip_name,"- Raw data loaded and interim data saved ******")
-    print("\t\tFiles stored:" )
-    print("\t\t",interim_files_stored,"\n")
+    if error == False:
+        print("****** Chip:",chip_name,"- Raw data loaded and interim data saved ******\n")
+        #print("\t\tFiles stored:" )
+        #print("\t\t",interim_files_stored,"\n")
 
     return interim_files_stored
 
@@ -334,41 +344,44 @@ def Leakage_current(name_files, graph_type):
 # load parameters
 process_param_df = load_process_param_df()
 geom_param_df = load_geom_param_df()
-
 chip_names = process_param_df.index
-if not selected_chips == "":
-    chip_names = selected_chips
+list_graph_str = ' / '.join(LIST_GRAPH)
+load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
+if load=="yes":
+    ### PRE-PROCESS FILES AND STORED INTO INTNERIM FOLDER
+    print("\n***********Data loading started*********")
 
-### PRE-PROCESS FILES AND STORED INTO INTNERIM FOLDER
-for chip in chip_names:
-    chip_interim_path = os.path.join(PATH_INTERIM_DATA, chip)
-    load = True
-    if os.path.exists(chip_interim_path):
-        load_input = input(f"\nInterim data already exists for chip '{chip}'. Do you want to reload data? yes/no: ")
-        if load_input == "yes":
-            load = True
-        elif load_input =="no":
-            load = False
-            print("Skipping loading raw data.")
-        else:
-            load=False
-            print("Unclear instruction. Loading skipped.")
-    if load:
-        start_time = time.time()
-        load_raw_data(chip, geom_param_df, process_param_df)
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print("\nElapsed time:", elapsed_time, "seconds")
+    for chip in chip_names:
+        chip_interim_path = os.path.join(PATH_INTERIM_DATA, chip)
+        if os.path.exists(chip_interim_path):
+            load_chip = input(f"Interim data already exists for chip '{chip}'. Do you want to reload data? yes/no: ")
+            if load_chip == "yes":
+                #start_time = time.time()
+                load_raw_data(chip, geom_param_df, process_param_df)
+                #end_time = time.time()
+                #elapsed_time = end_time - start_time
+                #print("\nElapsed time:", elapsed_time, "seconds")
+            else:
+                print("Loading skipped")
+        else: 
+            load_raw_data(chip, geom_param_df, process_param_df)
 
+
+## Get loaded files and corresponding chips
 interim_files = []
+chips_in_interim = []
 for root, dirs, files in os.walk(PATH_INTERIM_DATA):
     for file in files:
         if file.endswith(".xlsx"):
             chip = file.split("_")[0]
             if chip in chip_names:
+                chips_in_interim.append(chip)
                 interim_files.append(os.path.splitext(file)[0])
+chips_in_interim = np.unique(chips_in_interim)
+print("\nChips in interim: ",chips_in_interim)
+not_loaded_chips = [element for element in chip_names if element not in chips_in_interim]
+print("Chips not in interim: ",not_loaded_chips)
 
-print("\n Interim_files:\n",interim_files, "\n")
 
 
 ### GET LIST OF EXPERIENCES
@@ -376,21 +389,26 @@ exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.t
 exp_list_process = np.unique(exp_list_process)
 exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.tolist()]
 exp_list_geometry = np.unique(exp_list_geometry)
-
-print("\nList of all possible process experiences:\n", exp_list_process)
-print("\nList of all possible geometry experiences:\n", exp_list_geometry)
-
+#print("List of all possible process experiences:", exp_list_process)
+#print("\nList of all possible geometry experiences:\n", exp_list_geometry)
 exp_list_all = []
 for process in exp_list_process:
     for geom in exp_list_geometry:
         exp_list_all.append(geom + "_" + process)
-print("\nList of all possible combination of experiences:\n", exp_list_all)
+#print("\nList of all possible combination of experiences:\n", exp_list_all)
 
 
 ### CALCULATIONS + STORE RESULT
-test_exp = exp_list_process
+calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
+if not calculate=="yes":
+    exit()
+
+print("\n***********Calculation started*********")
+
+calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
+
 test_exp = []
-for chip in chip_names:
+for chip in chips_in_interim:
     test_exp.append(get_experience_from_chip(chip,process_param_df))
 
 for exp in test_exp:
@@ -399,13 +417,13 @@ for exp in test_exp:
 
     calculate = True
     if os.path.exists(new_path):
-        continue_input = input("\nThe results for the experience "+exp+" for chips "+chips_str+" already exists. Do you want to recalculate? yes/no: ")
-        if continue_input == "no":
+        continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chips_str+" already exists. Do you want to recalculate? yes/no: ")
+        if not continue_calculation == "yes":
             calculate = False
 
     if calculate:
         result_df = pd.DataFrame(columns=["Geometry","Placement"])
-        table_experience = select_capas_with_parameter(interim_files, process_experience=exp)
+        table_experience = select_capas_with_parameter(interim_files, exp,3)
 
         Geom_table = []
         Placement_table = []
@@ -419,17 +437,20 @@ for exp in test_exp:
             if extract_pattern_in_string(graph_type, "P-V") is not None:
                 voltage = extract_voltage_in_graphtype(graph_type, "P-V")
                 result_df["Pos Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
-                result_df["Neg Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
-                print("\nPolarisations calculated for plot " + graph_type)
+                if calculate_neg == "yes":
+                    result_df["Neg Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
+                print("Polarisations calculated for plot " + graph_type)
 
                 result_df["Pos Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,0]
-                result_df["Neg Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,1]
+                if calculate_neg == "yes":
+                    result_df["Neg Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,1]
                 print("Coercive fields calculated for plot " + graph_type)
             
             elif extract_pattern_in_string(graph_type, "IV") is not None:
                 voltage = extract_voltage_in_graphtype(graph_type, "IV")
                 result_df["Pos Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,0]
-                result_df["Neg Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,1]
+                if calculate_neg == "yes":
+                    result_df["Neg Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,1]
                 print("Leakage currents calculated for plot " + graph_type)
 
             elif extract_pattern_in_string(graph_type, "PUND") is not None:
@@ -442,11 +463,7 @@ for exp in test_exp:
 
         ### STORE RESULT DF TO FILE IN PROCESSED FOLDER
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
-        if os.path.exists(new_path):
-            with pd.ExcelWriter(new_path, engine='openpyxl', mode='a',if_sheet_exists='replace') as writer:
-                result_df.to_excel(writer, index=False)
-        else:
-            with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
-                result_df.to_excel(writer, index=False)
+        with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
+            result_df.to_excel(writer, index=False)
 
 print("\n***********Calculation completed*********")

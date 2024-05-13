@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+import os
 
 ## PROCESS PARAMETER FILE : FIRST COL: SAMPLE ID, THEN VARIABLES
 #***** Function: load_process_param_df *****
@@ -76,34 +77,34 @@ def get_experience_from_chip(chip_name, param_df):
 # Input: list of all file names, a specific process experience, a specific geometry experience
 # Output: list of selected files names which correspond do the given process and geometry experience
 # Note: indicate "" if you don't want to give a process or geometry
-def select_capas_with_parameter(file_names, process_experience="", geom_experience=""):
-    correct_process_files = []
+def select_capas_with_parameter(file_names, experience, position):
     selected_files = []
-
-    process_found = False
-    for file in file_names: # Iterate over the files in the current directory
-        process_val = file.split("_")[3]
-        if process_experience == "":
-            correct_process_files.append(file)
-            process_found = True
-        else: 
-            if process_val == process_experience:
-                correct_process_files.append(file)
-                process_found = True
-    if not process_found:
-        print("\nERROR: capacitors with process parameter", process_experience, "were not found\n")
-
-    geom_found = False
-    for file in correct_process_files: # Iterate over the files in the current directory
-        geom_val = file.split("_")[1]
-        if geom_experience == "":
-            selected_files.append(file)
-            geom_found = True
-        else: 
-            if geom_val == geom_experience:
+    found = False
+    if experience == "":
+        selected_files = file_names
+        found = True
+    else:
+        for file in file_names: # Iterate over the files in the current directory
+            val = file.split("_")[position]
+            if val == experience:
                 selected_files.append(file)
-                geom_found = True
-    if not geom_found:
-        print("\nERROR: capacitors with geometry parameter", geom_experience, "were not found\n")
+                found = True
+    if not found:
+        print("\nERROR: capacitors with parameter", experience, "were not found\n")
 
     return selected_files
+
+def get_file_names(path,chip_names=[]):
+    interim_files = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith(".xlsx"):
+                if chip_names == []:
+                    interim_files.append(os.path.splitext(file)[0])
+                else:
+                    chip = file.split("_")[0]
+                    if chip in chip_names:
+                        interim_files.append(os.path.splitext(file)[0])
+
+    print("\n Interim_files:\n",interim_files, "\n")
+    return interim_files
