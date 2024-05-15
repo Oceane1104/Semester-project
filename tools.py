@@ -77,21 +77,20 @@ def get_experience_from_chip(chip_name, param_df):
 # Input: list of all file names, a specific process experience, a specific geometry experience
 # Output: list of selected files names which correspond do the given process and geometry experience
 # Note: indicate "" if you don't want to give a process or geometry
-def select_capas_with_parameter(file_names, experience, position):
+def select_capas_with_parameter(file_names, experiences, position):
     selected_files = []
-    found = False
-    if experience == "":
+    if experiences == []:
         selected_files = file_names
-        found = True
     else:
-        for file in file_names: # Iterate over the files in the current directory
-            val = file.split("_")[position]
-            if val == experience:
-                selected_files.append(file)
-                found = True
-    if not found:
-        print("\nERROR: capacitors with parameter", experience, "were not found\n")
-
+        for exp in experiences: 
+            found = False
+            for file in file_names: # Iterate over the files in the current directory
+                val = file.split("_")[position]
+                if val == exp:
+                    selected_files.append(file)
+                    found = True
+            if not found:
+                print("\nERROR: capacitors with parameter", exp, "were not found\n")
     return selected_files
 
 def get_file_names(path,chip_names=[]):

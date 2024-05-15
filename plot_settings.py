@@ -21,9 +21,9 @@ units = ""
 
 # Choose experience
 SELECTED_CHIPS = ["ml4apr04"]
-SELECTED_EXPERIENCES = ""
-SELECTED_GEOMETRIES = "100"
-SELECTED_PLACEMENTS = ""
+SELECTED_EXPERIENCES = []
+SELECTED_GEOMETRIES = ["100","200"]
+SELECTED_PLACEMENTS = []
 
 # --> moyenne ?
 
@@ -31,7 +31,7 @@ SELECTED_PLACEMENTS = ""
 GRAPHES_TO_PLOT = ["P-V 3V_2#1", "P-V 4V_2#1", "IV 3V_1#1", "PUND 5V_1#1", "CV 3V_1#1"]
 GRAPH_VOLTAGES = ["1"] # currently not used just enter the complet graph name above
 
-SHOW_PLOTS = True # put False if you don't want to show all plots during plot generation
+SHOW_PLOTS = False # put False if you don't want to show all plots during plot generation
 
 # Choose results to plot
 RESULTS_TO_PLOT = []
