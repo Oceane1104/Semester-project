@@ -11,6 +11,8 @@ from tools import get_chips_from_experience
 from tools import get_experience_from_chip
 from tools import select_capas_with_parameter
 from tools import extract_voltage_in_graphtype
+from tools import load_process_param_df
+from tools import load_geom_param_df
 
 ### CHANGE IF NECESSARY
 #---graph types to load
@@ -27,14 +29,13 @@ if (user == "Nathalie"):
     #Nathalie
     PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
 elif (user == "Océane"):
-    #Océane
+    #OcéaneT
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
 elif (user == "Tom"):
     print("Error:Need to create your path")
     exit()
 elif (user == "Thibault"):
-    print("Error:Need to create your path")
-    exit()
+    PATH_FOLDER = 'C:\\Users\\Travail\\Desktop\\PDS\\Reports'
 else:
     print("Error: Invalid user input.")
     exit()
@@ -45,36 +46,6 @@ PATH_INTERIM_DATA = PATH_FOLDER + '\\Data\\Interim'
 PATH_PROCESSED_DATA = PATH_FOLDER + '\\Data\\Processed'
 PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
-
-
-
-## PROCESS PARAMETER FILE : FIRST COL: SAMPLE ID, THEN VARIABLES
-#***** Function: load_process_param_df *****
-def load_process_param_df():
-    process_param = pd.read_excel(PATH_PROCESS_PARAM_FILE)
-    # sample_IDs = process_param['sample ID'].to_list() # get a list of all chips
-    process_param.set_index('sample ID', inplace=True) # Set the first column (sample ID) as the index
-    print(process_param)
-    
-    # Get the column names
-    process_param_names = process_param.columns
-    print('\nNumber of process parameters:', len(process_param_names))
-    print('Process parameter names:', ', '.join(map(str,process_param_names)))
-    return process_param
-
-## GEOMETRICAL PARAMETER FILE : NO INDICATION OF CHIP / SAMPLE IN FILE
-#***** Function: load_geom_param_df *****
-def load_geom_param_df():
-    geom_param = pd.read_excel(PATH_GEOM_PARAM_FILE)
-    print(geom_param)
-
-    # Get the column names
-    geom_param_names = geom_param.columns
-    print('\nNumber of geometrical parameters:', len(geom_param_names))
-    print('Geometrical parameter names:', ', '.join(map(str,geom_param_names)))
-    return geom_param
-
-
 
 #***** Function: extract_capa_info *****
 # Input: filename of raw data, graph type, geomParam dataframe
@@ -182,7 +153,7 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
     # For each capa
     for capa in capas_unique:
         capa_idx = [index for index, value in enumerate(capa_list) if value == capa]
-        print("capa indexes: ", capa_idx)
+        #print("capa indexes: ", capa_idx)
         sheet_name_list = []
         data_list = []
         for idx in capa_idx:
@@ -255,7 +226,7 @@ def Polarisation(name_files,graph_type):
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
             size = geometry.split('-')[0]
-            area = (int(size)*10**(-6))**2
+            area = (int(size)*10**(-4))**2
 
             charge_ma = max(data['Charge'])
             charge_mi = min(data['Charge'])
@@ -273,10 +244,10 @@ def Polarisation(name_files,graph_type):
             indice_zero_2 = (df_phase3['Vforce'] - 0).abs().idxmin()
             courant_en_zero_neg = df_phase3.loc[indice_zero_2, 'Charge']
 
-            pol_max = (courant_en_zero_pos - diff_charge) / area * 10**2
-            pol_min = (courant_en_zero_neg - diff_charge) / area * 10**2
+            pol_max = (courant_en_zero_pos - diff_charge) * 10**(6) / area 
+            pol_min = (courant_en_zero_neg - diff_charge) * 10**(6) / area  #µC.cm-²
         polarisations.append([pol_max,pol_min])
-
+#penser à rajouter les unités
     polarisations = np.array(polarisations)
     return polarisations
 
@@ -342,8 +313,8 @@ def Leakage_current(name_files, graph_type):
 
 ## --------------- MAIN BLOCK
 # load parameters
-process_param_df = load_process_param_df()
-geom_param_df = load_geom_param_df()
+process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
+geom_param_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
 chip_names = process_param_df.index
 list_graph_str = ' / '.join(LIST_GRAPH)
 load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
@@ -385,11 +356,11 @@ print("Chips not in interim: ",not_loaded_chips)
 
 
 ### GET LIST OF EXPERIENCES
-exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.tolist()]
+exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.astype(str).tolist()]
 exp_list_process = np.unique(exp_list_process)
-exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.tolist()]
+exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.astype(str).tolist()]
 exp_list_geometry = np.unique(exp_list_geometry)
-#print("List of all possible process experiences:", exp_list_process)
+print("List of all possible process experiences:", exp_list_process)
 #print("\nList of all possible geometry experiences:\n", exp_list_geometry)
 exp_list_all = []
 for process in exp_list_process:
@@ -411,8 +382,8 @@ test_exp = []
 for chip in chips_in_interim:
     test_exp.append(get_experience_from_chip(chip,process_param_df))
 
-for exp in test_exp:
-    chips_str = '_'.join(get_chips_from_experience(exp, process_param_df))
+for exp in test_exp: 
+    chips_str = get_chips_from_experience(exp, process_param_df)
     new_path = PATH_PROCESSED_DATA + "\\" + exp + "_" + chips_str + ".xlsx"
 
     calculate = True
@@ -423,8 +394,7 @@ for exp in test_exp:
 
     if calculate:
         result_df = pd.DataFrame(columns=["Geometry","Placement"])
-        table_experience = select_capas_with_parameter(interim_files, exp,3)
-
+        table_experience = select_capas_with_parameter(interim_files, [exp],3)
         Geom_table = []
         Placement_table = []
         for name_file in table_experience:

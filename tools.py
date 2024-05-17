@@ -4,10 +4,11 @@ import os
 
 ## PROCESS PARAMETER FILE : FIRST COL: SAMPLE ID, THEN VARIABLES
 #***** Function: load_process_param_df *****
-def load_process_param_df(path):
-    process_param = pd.read_excel(path)
+def load_process_param_df(PATH):
+    process_param = pd.read_excel(PATH)
     # sample_IDs = process_param['sample ID'].to_list() # get a list of all chips
     process_param.set_index('sample ID', inplace=True) # Set the first column (sample ID) as the index
+    process_param = process_param.astype(str)
     print(process_param)
     
     # Get the column names
@@ -18,9 +19,16 @@ def load_process_param_df(path):
 
 ## GEOMETRICAL PARAMETER FILE : NO INDICATION OF CHIP / SAMPLE IN FILE
 #***** Function: load_geom_param_df *****
-def load_geom_param_df(path):
-    geom_param = pd.read_excel(path)
+def load_geom_param_df(PATH):
+    geom_param = pd.read_excel(PATH)
+    geom_param = geom_param.astype(str)
     print(geom_param)
+
+    # Get the column names
+    geom_param_names = geom_param.columns
+    print('\nNumber of geometrical parameters:', len(geom_param_names))
+    print('Geometrical parameter names:', ', '.join(map(str,geom_param_names)))
+    return geom_param
 
 #***** Function: extract_pattern_in_string *****
 def extract_pattern_in_string(string, pattern):
@@ -47,7 +55,7 @@ def get_chips_from_experience(experience_string, param_df):
     nb_params = len(param_df.columns)
     nb_exp_parts = len(experience_parts)
     # Initialisation
-    chip_list = []  
+    chip_list_final = ""
     # check that nb params = nb experience parts
     if nb_params == nb_exp_parts:
         df_temp = param_df
@@ -59,11 +67,13 @@ def get_chips_from_experience(experience_string, param_df):
                     chip_list.append(param_col.index[j])
             #print(chip_list)
             df_temp = df_temp.loc[chip_list] # continue only with rows which have the correct parameter
+
+        chip_list_final = "_".join(df_temp.index)
     else:
         print('Error: Number of parameters are not equal')
-    if chip_list is None:
+    if chip_list_final == "":
         print('No chips for the experience', experience_string, 'found')
-    return chip_list
+    return chip_list_final
 
 
 #***** Function: get_experience_from_chip *****
