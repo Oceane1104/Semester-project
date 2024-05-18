@@ -112,7 +112,7 @@ def get_file_names(path,chip_names=[]):
     for root, dirs, files in os.walk(path):
         for file in files:
             if file.endswith(".xlsx"):
-                if chip_names == []:
+                if chip_names.size == 0:
                     interim_files.append(os.path.splitext(file)[0])
                 else:
                     chip = file.split("_")[0]
