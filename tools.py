@@ -123,11 +123,11 @@ def get_file_names(path,chip_names=[]):
     return interim_files
 
 #***** Function: butter_lowpass_filter *****
-# Input: dataframe, (cutoff frequency), (order)
+# Input: y values, x values, (cutoff frequency), (order)
 # Output: less noisy measurement
 # Note: only change cutoff frequency in case of error, and do so consistently to keep comparisons relevant
-def butter_lowpass_filter(data, cutoff=2000000, order=5):
-    fs = 1 / (data['t'][1] - data['t'][0])
+def butter_lowpass_filter(data, data_time, cutoff=2000000, order=5):
+    fs = 1 / (data_time[1] - data_time[0])
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
@@ -139,6 +139,20 @@ PUND_TIMES = [ 25e-6,  50e-6, 150e-6, 175e-6, #1st edge of 1st two pulses
               100e-6, 125e-6, 225e-6, 250e-6, #2nd         1st
               275e-6, 300e-6, 400e-6, 425e-6, #1st         2nd
               350e-6, 375e-6, 475e-6, 500e-6] #2nd         2nd
+
+#***** Function: integrate_pund *****
+# Input: dataframe of PUND, negative (false for pos, true for neg), (timestamps of PUND)
+# Output: polarisation without residual participations
+def integrate_pund(data, negative, times = PUND_TIMES):
+    start1    = (data['t'] >= times[0+8*negative]).idxmax()
+    end1      = (data['t'] >= times[1+8*negative]).idxmax()
+    start2    = (data['t'] >= times[2+8*negative]).idxmax()
+    end2      = (data['t'] >= times[3+8*negative]).idxmax()
+    integral1 = simps(data['I'][start1:end1], data['t'][start1:end1])
+    integral2 = simps(data['I'][start2:end2], data['t'][start2:end2])
+    result = integral1 - integral2
+
+    return result
 
 #***** Function: PUND_to_PV *****
 # Input: dataframe of PUND, (timestamps of PUND)
@@ -163,7 +177,6 @@ def PUND_to_PV(data, times=PUND_TIMES):
             delay = data['t'][start1] - t_array[len(t_array) - 1]
         t_array.extend(data['t'][start1:start1+min_length] - delay)
         
-    print(f'Tailles : {len(t_array)} et {len(I_array)}')
     Q_array = cumtrapz(I_array, t_array, initial=0)
     
     pv_plot['Charge'], pv_plot['Vforce'], pv_plot['t'] = Q_array, V_array, t_array

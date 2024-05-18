@@ -13,12 +13,13 @@ from tools import select_capas_with_parameter
 from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
 from tools import load_geom_param_df
-#from tools import butter_lowpass_filter
+from tools import butter_lowpass_filter
 from tools import PUND_to_PV
+from tools import integrate_pund
 
 ### CHANGE IF NECESSARY
 #---graph types to load
-LIST_GRAPH = ["P-V 3V_2#1", "P-V 4V_2#1", "IV 3V_1#1", "PUND 5V_1#1", "CV 3V_1#1"]
+LIST_GRAPH = ["P-V 3V_2#1", "P-V 4V_2#1", "P-V 5V_1#1", "IV 3V_1#1", "PUND 5V_1#1", "CV 3V_1#1"]
 
 #---chips to load or calculate
 selected_chips = ""
@@ -170,7 +171,7 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
         pundp_data = data_list[pundp_index]
         pv_5v_df = PUND_to_PV(pundp_data) 
         data_list.append(pv_5v_df)
-        sheet_name_list.append('PV 5V_1#1')
+        sheet_name_list.append('P-V 5V_1#1')
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
@@ -224,7 +225,7 @@ def load_interim_data(interim_file_name, graph_type):
 #***** Function: Polarisation *****
 # Input: file name, specific graph type that we want 
 # Output: Remanent polarisation positive and negative
-def Polarisation(name_files,graph_type):
+def Polarisation(name_files, graph_type):
     polarisations = []
     for file in name_files:
         pol_max = np.nan
@@ -256,7 +257,43 @@ def Polarisation(name_files,graph_type):
             pol_max = (courant_en_zero_pos - diff_charge) * 10**(6) / area 
             pol_min = (courant_en_zero_neg - diff_charge) * 10**(6) / area  #µC.cm-²
         polarisations.append([pol_max,pol_min])
-#penser à rajouter les unités
+        #penser à normaliser les unités
+    polarisations = np.array(polarisations)
+    return polarisations
+
+
+#***** Function: Polarisation *****
+# Input: file name, negative? (0 for PUND pos, 1 for PUND neg)
+# Output: Remanent polarisation positive and negative
+def Polarisation_PUND(name_files, negative):
+    polarisations = []
+    for file in name_files:
+        pol_max = np.nan
+        pol_min = np.nan
+        data = []
+        if negative == 0:
+            data = load_interim_data(file, 'PUND 5V_1#1')
+        else:
+            data = load_interim_data(file, 'PUND 5V neg_1#1')
+
+        if len(data): # if data is not empty
+            geometry = file.split('_')[1]
+            size = geometry.split('-')[0]
+            area = (int(size)*10**(-4))**2
+
+            filtered_I      = butter_lowpass_filter(data['I'], data['t'])
+            filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
+            chargep         = integrate_pund(filtered_data, 0)
+            chargen         = integrate_pund(filtered_data, 1)
+
+            pol_max = chargep * 10**(6) / area 
+            pol_min = chargen * 10**(6) / area  #µC.cm-²
+        
+        if negative == 0:
+            polarisations.append([pol_max, pol_min])
+        else:
+            polarisations.append([pol_min, pol_max])
+        #penser à normaliser les unités
     polarisations = np.array(polarisations)
     return polarisations
 
@@ -433,8 +470,10 @@ for exp in test_exp:
                 print("Leakage currents calculated for plot " + graph_type)
 
             elif extract_pattern_in_string(graph_type, "PUND") is not None:
-                # calculate hysteresis
-                print("Calculations based on PUND plots not implemented yet.")
+                result_df["Pos Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,0]
+                if calculate_neg == "yes":
+                    result_df["Neg Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,1]
+                print("Polarisations calculated for plot " + graph_type)
                 
             elif extract_pattern_in_string(graph_type, "CV") is not None:
                 # calculate coercive field
