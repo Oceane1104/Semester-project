@@ -13,6 +13,8 @@ from tools import select_capas_with_parameter
 from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
 from tools import load_geom_param_df
+#from tools import butter_lowpass_filter
+from tools import PUND_to_PV
 
 ### CHANGE IF NECESSARY
 #---graph types to load
@@ -162,6 +164,13 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
             data_df = pd.read_excel(wb)
             data_list.append(data_df)
             sheet_name_list.append(graph_list[idx])
+
+        #***** Create the PV 5V plot and load it in the interim file *****
+        pundp_index = sheet_name_list.index('PUND 5V_1#1')
+        pundp_data = data_list[pundp_index]
+        pv_5v_df = PUND_to_PV(pundp_data) 
+        data_list.append(pv_5v_df)
+        sheet_name_list.append('PV 5V_1#1')
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
