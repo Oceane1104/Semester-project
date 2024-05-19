@@ -1,5 +1,5 @@
 # Plot settings
-TITLE = "TEST"
+TITLE = "FE 10x10um2"
 LABEL_EXP = True
 LABEL_PLAC = True
 LABEL_GEO = True
@@ -20,15 +20,16 @@ UNIT_Y = 1
 units = ""
 
 # Choose experience
-
-SELECTED_EXPERIENCES = []
-SELECTED_GEOMETRIES = ["50"]
+SELECTED_CHIPS = []
+SELECTED_EXPERIENCES = ["FE"]
+SELECTED_GEOMETRIES =  ["10-1x1"]
 SELECTED_PLACEMENTS = []
 
 # --> moyenne ?
 
 # Choose graphes ! several at once
-GRAPHES_TO_PLOT = ["P-V 4V_2#1", "PUND 5V_1#1", "P-V 5V_1#1"]
+GRAPHES_TO_PLOT = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", "P-V 10V_1#1",
+                   "PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
 GRAPH_VOLTAGES = ["1"] # currently not used just enter the complet graph name above
 
 SHOW_PLOTS = False # put False if you don't want to show all plots during plot generation
