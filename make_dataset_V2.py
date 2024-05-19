@@ -66,23 +66,19 @@ def extract_capa_info_from_raw_data(file_name, graph_type, geomParam):
 
     # Loop through each column of the DataFrame along with its name -> loop over each geometrical parameter
     # Normally the geometrical parameter of each capa should be given in the filename
+    geom_param_val = ""
     geom_param_indices = []
-    for column in geomParam.columns:
-        column_data_as_str = geomParam[column].astype(str) # Convert to string
 
-        param_x_found = False
-        for data_pt in column_data_as_str:
-            for i in range(len(parts)):
-                if parts[i] == data_pt:
-                    param_x_found = True
-                    geom_param_indices.append(i)
-        if not param_x_found:
-            print("\nERROR: the geometrical parameter ", column, " could not be found in ", file_name,"\n")
-
-    # Get geometrical parameters
-    geom_param_list = [parts[i] for i in geom_param_indices]
-    geom_param_val = '-'.join(geom_param_list)
-    #print("Geometrical parameter:",geom_param_val)
+    goem_rows = ['-'.join(map(str, row)) for row in geomParam.values.astype(str).tolist()]
+    param_x_found = False
+    for data_pt in goem_rows:
+        for i in range(len(parts)):
+            if parts[i] == data_pt:
+                geom_param_val = data_pt
+                geom_param_indices.append(i)
+                param_x_found = True
+    if not param_x_found:
+        print("\nERROR: No geometrical parameter could not be found in ", file_name,"\n")
 
     # Get capa placement
         # Get all indices that are not in the 'geom_param_indices' list
