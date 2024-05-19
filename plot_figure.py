@@ -21,7 +21,6 @@ from Visualize import plot_PV, plot_CV, plot_pund, plot_IV
 from plot_settings import GRAPHES_TO_PLOT
 from plot_settings import GRAPH_VOLTAGES
 
-from plot_settings import SELECTED_CHIPS
 from plot_settings import SELECTED_EXPERIENCES 
 from plot_settings import SELECTED_GEOMETRIES
 from plot_settings import SELECTED_PLACEMENTS
@@ -39,8 +38,7 @@ elif (user == "Tom"):
     print("Error:Need to create your path")
     exit()
 elif (user == "Thibault"):
-    print("Error:Need to create your path")
-    exit()
+    PATH_FOLDER = 'C:\\Users\\Travail\\Desktop\\PDS\\Reports'
 else:
     print("Error: Invalid user input.")
     exit()
@@ -56,6 +54,10 @@ PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
 geom_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
 
+chip_names = np.array(param_df.index)
+SELECTED_CHIPS = chip_names
+print(chip_names)
+
 ### Select capacitors to plot
 interim_files = get_file_names(PATH_INTERIM_DATA, SELECTED_CHIPS)
 
@@ -63,6 +65,8 @@ capas_with_process = select_capas_with_parameter(interim_files, SELECTED_EXPERIE
 capas_with_geom = select_capas_with_parameter(capas_with_process, SELECTED_GEOMETRIES, 1)
 print(capas_with_geom)
 capas_to_plot = select_capas_with_parameter(capas_with_geom, SELECTED_PLACEMENTS, 2)
+
+
 
 ### Plot graphes
 for graph in GRAPHES_TO_PLOT:
@@ -77,6 +81,8 @@ for graph in GRAPHES_TO_PLOT:
         
     elif extract_pattern_in_string(graph, "PUND") is not None:
         plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+
+
 
 ### Plot results
 # nom du fichier
