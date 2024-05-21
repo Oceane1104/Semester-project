@@ -14,7 +14,7 @@ from tools import extract_voltage_in_graphtype
 
 ### CHANGE IF NECESSARY
 #---graph types to load
-LIST_GRAPH = ["P-V 3V_2#1", "P-V 4V_2#1", "IV 3V_1#1", "PUND 5V_1#1", "CV 3V_1#1"]
+LIST_GRAPH = ["P-V 40V_1#1"]
 
 #---chips to load or calculate
 selected_chips = ""
@@ -344,7 +344,9 @@ def Leakage_current(name_files, graph_type):
 # load parameters
 process_param_df = load_process_param_df()
 geom_param_df = load_geom_param_df()
-chip_names = process_param_df.index
+#chip_names = process_param_df.index
+#"ml4may02", 
+chip_names = ["ml4may17"]
 list_graph_str = ' / '.join(LIST_GRAPH)
 load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
 if load=="yes":

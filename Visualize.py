@@ -58,7 +58,7 @@ def plot_PV(data_list, graph_type, interim_path, output_path):
 
         plt.plot(data['Vforce'], (data['Charge'] - diff_charge)/area, marker='o', label=f"{label_name}", 
                         color=colors[i-1], linewidth=SIZE_LINE)
-    plt.title(f'Polarisation vs Voltage {TITLE}', fontsize=SIZE_TITLE)
+    plt.title(f'Polarisation vs Voltage {graph_type} - {TITLE}', fontsize=SIZE_TITLE)
     plt.xlabel('Voltage', fontsize=SIZE_AXIS)
     plt.ylabel('Polarisation', fontsize=SIZE_AXIS)
     plt.grid(True)
@@ -89,7 +89,7 @@ def plot_pund(data_list, graph_type, interim_path, output_path):
 
         plt.plot(data['t'], data['I'], marker='o', label=f"{label_name}", 
                         color=colors[i-1], linewidth=SIZE_LINE)
-    plt.title(f'Current vs Time {TITLE}', fontsize=SIZE_TITLE)
+    plt.title(f'Current vs Time {graph_type} - {TITLE}', fontsize=SIZE_TITLE)
     plt.xlabel('Time', fontsize=SIZE_AXIS)
     plt.ylabel('Current', fontsize=SIZE_AXIS)
     plt.grid(True)
@@ -119,7 +119,7 @@ def plot_IV(data_list, graph_type, interim_path, output_path):
             label_name = label_name + "_" + geometrical
         plt.plot(data['AV'], data['AI'], marker='o', label=f"{label_name}", 
                         color=colors[i-1], linewidth=SIZE_LINE)
-    plt.title(f'Current vs Voltage {TITLE}', fontsize=SIZE_TITLE)
+    plt.title(f'Current vs Voltage {graph_type} - {TITLE}', fontsize=SIZE_TITLE)
     plt.xlabel('Time', fontsize=SIZE_AXIS)
     plt.ylabel('Current', fontsize=SIZE_AXIS)
     plt.grid(True)
@@ -148,7 +148,7 @@ def plot_CV(data_list, graph_type, interim_path, output_path):
             label_name = label_name + "_" + geometrical
         plt.plot(data['DCV_AB'], data['Cp_AB'], marker='o', label=f"{label_name}", 
                         color=colors[i-1], linewidth=SIZE_LINE)
-    plt.title(f'Charge vs Voltage {TITLE}', fontsize=SIZE_TITLE)
+    plt.title(f'Charge vs Voltage {graph_type} - {TITLE}', fontsize=SIZE_TITLE)
     plt.xlabel('Charge', fontsize=SIZE_AXIS)
     plt.ylabel('Voltage', fontsize=SIZE_AXIS)
     plt.grid(True)
