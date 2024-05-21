@@ -11,10 +11,15 @@ from tools import get_chips_from_experience
 from tools import get_experience_from_chip
 from tools import select_capas_with_parameter
 from tools import extract_voltage_in_graphtype
+from tools import load_process_param_df
+from tools import load_geom_param_df
+from tools import butter_lowpass_filter
+from tools import PUND_to_PV
+from tools import integrate_pund
 
 ### CHANGE IF NECESSARY
 #---graph types to load
-LIST_GRAPH = ["P-V 40V_1#1"]
+LIST_GRAPH = ["P-V 3V_2#1", "P-V 4V_2#1", "P-V 5V_1#1", "IV 3V_1#1", "PUND 5V_1#1", "CV 3V_1#1"]
 
 #---chips to load or calculate
 selected_chips = ""
@@ -27,14 +32,13 @@ if (user == "Nathalie"):
     #Nathalie
     PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
 elif (user == "Océane"):
-    #Océane
+    #OcéaneT
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
 elif (user == "Tom"):
     print("Error:Need to create your path")
     exit()
 elif (user == "Thibault"):
-    print("Error:Need to create your path")
-    exit()
+    PATH_FOLDER = 'C:\\Users\\Travail\\Desktop\\PDS\\Reports'
 else:
     print("Error: Invalid user input.")
     exit()
@@ -45,36 +49,6 @@ PATH_INTERIM_DATA = PATH_FOLDER + '\\Data\\Interim'
 PATH_PROCESSED_DATA = PATH_FOLDER + '\\Data\\Processed'
 PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
-
-
-
-## PROCESS PARAMETER FILE : FIRST COL: SAMPLE ID, THEN VARIABLES
-#***** Function: load_process_param_df *****
-def load_process_param_df():
-    process_param = pd.read_excel(PATH_PROCESS_PARAM_FILE)
-    # sample_IDs = process_param['sample ID'].to_list() # get a list of all chips
-    process_param.set_index('sample ID', inplace=True) # Set the first column (sample ID) as the index
-    print(process_param)
-    
-    # Get the column names
-    process_param_names = process_param.columns
-    print('\nNumber of process parameters:', len(process_param_names))
-    print('Process parameter names:', ', '.join(map(str,process_param_names)))
-    return process_param
-
-## GEOMETRICAL PARAMETER FILE : NO INDICATION OF CHIP / SAMPLE IN FILE
-#***** Function: load_geom_param_df *****
-def load_geom_param_df():
-    geom_param = pd.read_excel(PATH_GEOM_PARAM_FILE)
-    print(geom_param)
-
-    # Get the column names
-    geom_param_names = geom_param.columns
-    print('\nNumber of geometrical parameters:', len(geom_param_names))
-    print('Geometrical parameter names:', ', '.join(map(str,geom_param_names)))
-    return geom_param
-
-
 
 #***** Function: extract_capa_info *****
 # Input: filename of raw data, graph type, geomParam dataframe
@@ -95,23 +69,19 @@ def extract_capa_info_from_raw_data(file_name, graph_type, geomParam):
 
     # Loop through each column of the DataFrame along with its name -> loop over each geometrical parameter
     # Normally the geometrical parameter of each capa should be given in the filename
+    geom_param_val = ""
     geom_param_indices = []
-    for column in geomParam.columns:
-        column_data_as_str = geomParam[column].astype(str) # Convert to string
 
-        param_x_found = False
-        for data_pt in column_data_as_str:
-            for i in range(len(parts)):
-                if parts[i] == data_pt:
-                    param_x_found = True
-                    geom_param_indices.append(i)
-        if not param_x_found:
-            print("\nERROR: the geometrical parameter ", column, " could not be found in ", file_name,"\n")
-
-    # Get geometrical parameters
-    geom_param_list = [parts[i] for i in geom_param_indices]
-    geom_param_val = '-'.join(geom_param_list)
-    #print("Geometrical parameter:",geom_param_val)
+    goem_rows = ['-'.join(map(str, row)) for row in geomParam.values.astype(str).tolist()]
+    param_x_found = False
+    for data_pt in goem_rows:
+        for i in range(len(parts)):
+            if parts[i] == data_pt:
+                geom_param_val = data_pt
+                geom_param_indices.append(i)
+                param_x_found = True
+    if not param_x_found:
+        print("\nERROR: No geometrical parameter could not be found in ", file_name,"\n")
 
     # Get capa placement
         # Get all indices that are not in the 'geom_param_indices' list
@@ -182,7 +152,7 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
     # For each capa
     for capa in capas_unique:
         capa_idx = [index for index, value in enumerate(capa_list) if value == capa]
-        print("capa indexes: ", capa_idx)
+        #print("capa indexes: ", capa_idx)
         sheet_name_list = []
         data_list = []
         for idx in capa_idx:
@@ -191,6 +161,13 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
             data_df = pd.read_excel(wb)
             data_list.append(data_df)
             sheet_name_list.append(graph_list[idx])
+
+        #***** Create the PV 5V plot and load it in the interim file *****
+        pundp_index = sheet_name_list.index('PUND 5V_1#1')
+        pundp_data = data_list[pundp_index]
+        pv_5v_df = PUND_to_PV(pundp_data) 
+        data_list.append(pv_5v_df)
+        sheet_name_list.append('P-V 5V_1#1')
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
@@ -244,7 +221,7 @@ def load_interim_data(interim_file_name, graph_type):
 #***** Function: Polarisation *****
 # Input: file name, specific graph type that we want 
 # Output: Remanent polarisation positive and negative
-def Polarisation(name_files,graph_type):
+def Polarisation(name_files, graph_type):
     polarisations = []
     for file in name_files:
         pol_max = np.nan
@@ -255,7 +232,7 @@ def Polarisation(name_files,graph_type):
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
             size = geometry.split('-')[0]
-            area = (int(size)*10**(-6))**2
+            area = (int(size)*10**(-4))**2
 
             charge_ma = max(data['Charge'])
             charge_mi = min(data['Charge'])
@@ -273,10 +250,46 @@ def Polarisation(name_files,graph_type):
             indice_zero_2 = (df_phase3['Vforce'] - 0).abs().idxmin()
             courant_en_zero_neg = df_phase3.loc[indice_zero_2, 'Charge']
 
-            pol_max = (courant_en_zero_pos - diff_charge) / area * 10**2
-            pol_min = (courant_en_zero_neg - diff_charge) / area * 10**2
+            pol_max = (courant_en_zero_pos - diff_charge) * 10**(6) / area 
+            pol_min = (courant_en_zero_neg - diff_charge) * 10**(6) / area  #µC.cm-²
         polarisations.append([pol_max,pol_min])
+        #penser à normaliser les unités
+    polarisations = np.array(polarisations)
+    return polarisations
 
+
+#***** Function: Polarisation *****
+# Input: file name, negative? (0 for PUND pos, 1 for PUND neg)
+# Output: Remanent polarisation positive and negative
+def Polarisation_PUND(name_files, negative):
+    polarisations = []
+    for file in name_files:
+        pol_max = np.nan
+        pol_min = np.nan
+        data = []
+        if negative == 0:
+            data = load_interim_data(file, 'PUND 5V_1#1')
+        else:
+            data = load_interim_data(file, 'PUND 5V neg_1#1')
+
+        if len(data): # if data is not empty
+            geometry = file.split('_')[1]
+            size = geometry.split('-')[0]
+            area = (int(size)*10**(-4))**2
+
+            filtered_I      = butter_lowpass_filter(data['I'], data['t'])
+            filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
+            chargep         = integrate_pund(filtered_data, 0)
+            chargen         = integrate_pund(filtered_data, 1)
+
+            pol_max = chargep * 10**(6) / area 
+            pol_min = chargen * 10**(6) / area  #µC.cm-²
+        
+        if negative == 0:
+            polarisations.append([pol_max, pol_min])
+        else:
+            polarisations.append([pol_min, pol_max])
+        #penser à normaliser les unités
     polarisations = np.array(polarisations)
     return polarisations
 
@@ -342,11 +355,9 @@ def Leakage_current(name_files, graph_type):
 
 ## --------------- MAIN BLOCK
 # load parameters
-process_param_df = load_process_param_df()
-geom_param_df = load_geom_param_df()
-#chip_names = process_param_df.index
-#"ml4may02", 
-chip_names = ["ml4may17"]
+process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
+geom_param_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
+chip_names = process_param_df.index
 list_graph_str = ' / '.join(LIST_GRAPH)
 load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
 if load=="yes":
@@ -387,11 +398,11 @@ print("Chips not in interim: ",not_loaded_chips)
 
 
 ### GET LIST OF EXPERIENCES
-exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.tolist()]
+exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.astype(str).tolist()]
 exp_list_process = np.unique(exp_list_process)
-exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.tolist()]
+exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.astype(str).tolist()]
 exp_list_geometry = np.unique(exp_list_geometry)
-#print("List of all possible process experiences:", exp_list_process)
+print("List of all possible process experiences:", exp_list_process)
 #print("\nList of all possible geometry experiences:\n", exp_list_geometry)
 exp_list_all = []
 for process in exp_list_process:
@@ -413,8 +424,8 @@ test_exp = []
 for chip in chips_in_interim:
     test_exp.append(get_experience_from_chip(chip,process_param_df))
 
-for exp in test_exp:
-    chips_str = '_'.join(get_chips_from_experience(exp, process_param_df))
+for exp in test_exp: 
+    chips_str = get_chips_from_experience(exp, process_param_df)
     new_path = PATH_PROCESSED_DATA + "\\" + exp + "_" + chips_str + ".xlsx"
 
     calculate = True
@@ -425,8 +436,7 @@ for exp in test_exp:
 
     if calculate:
         result_df = pd.DataFrame(columns=["Geometry","Placement"])
-        table_experience = select_capas_with_parameter(interim_files, exp,3)
-
+        table_experience = select_capas_with_parameter(interim_files, [exp],3)
         Geom_table = []
         Placement_table = []
         for name_file in table_experience:
@@ -456,8 +466,10 @@ for exp in test_exp:
                 print("Leakage currents calculated for plot " + graph_type)
 
             elif extract_pattern_in_string(graph_type, "PUND") is not None:
-                # calculate hysteresis
-                print("Calculations based on PUND plots not implemented yet.")
+                result_df["Pos Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,0]
+                if calculate_neg == "yes":
+                    result_df["Neg Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,1]
+                print("Polarisations calculated for plot " + graph_type)
                 
             elif extract_pattern_in_string(graph_type, "CV") is not None:
                 # calculate coercive field
