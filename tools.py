@@ -154,6 +154,17 @@ def integrate_pund(data, negative, times = PUND_TIMES):
 
     return result
 
+#***** Function: integrate_pund_lkg *****
+# Input: dataframe of PUND, negative (false for pos, true for neg), (timestamps of PUND)
+# Output: only second ramps, to be able to compare leakages
+def integrate_pund_lkg(data, negative, times = PUND_TIMES):
+    start2    = (data['t'] >= times[2+8*negative]).idxmax()
+    end2      = (data['t'] >= times[3+8*negative]).idxmax()
+    integral2 = simps(data['I'][start2:end2], data['t'][start2:end2])
+    result = integral2
+
+    return result
+
 #***** Function: PUND_to_PV *****
 # Input: dataframe of PUND, (timestamps of PUND)
 # Output: PV 5V plot

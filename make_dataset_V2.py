@@ -5,6 +5,7 @@ import glob
 import time
 import xlrd
 import re
+import matplotlib.pyplot as plt
 # import functions from other python files
 from tools import extract_pattern_in_string
 from tools import get_chips_from_experience
@@ -16,6 +17,7 @@ from tools import load_geom_param_df
 from tools import butter_lowpass_filter
 from tools import PUND_to_PV
 from tools import integrate_pund
+from tools import integrate_pund_lkg
 
 ### CHANGE IF NECESSARY
 #---graph types to load
@@ -354,7 +356,93 @@ def Leakage_current(name_files, graph_type):
     leakage = np.array(leakage)
     return leakage
 
+def Leakage_PUND(name_files, negative):
+    leakage = []
+    for file in name_files:
+        lkg_max = np.nan
+        lkg_min = np.nan
+        data = []
+        if negative == 0:
+            data = load_interim_data(file, 'PUND 5V_1#1')
+        else:
+            data = load_interim_data(file, 'PUND 5V neg_1#1')
 
+        if len(data): # if data is not empty
+            geometry = file.split('_')[1]
+            size = geometry.split('-')[0]
+            area = (int(size)*10**(-4))**2
+
+            filtered_I      = butter_lowpass_filter(data['I'], data['t'])
+            filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
+            leakagep         = integrate_pund_lkg(filtered_data, 0)
+            leakagen         = integrate_pund_lkg(filtered_data, 1)
+
+            lkg_max = leakagep * 10**(6) / area 
+            lkg_min = leakagen * 10**(6) / area  #µA.cm-²
+        
+        if negative == 0:
+            leakage.append([lkg_max, lkg_min])
+        else:
+            leakage.append([lkg_min, lkg_max])
+        #penser à normaliser les unités
+    leakage = np.array(leakage)
+    return leakage
+
+def plots_experience(sizes, columns):
+    param_names = np.array(process_param_df.columns)
+    if input("Do you want summary plots ? (yes/no) ") == 'no':
+        exit()
+    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
+    primary_var = int(primary_var)
+    secondary_var = input(f"Choose a secondary parameter (any) between 0 and {len(param_names) -1} (position in {param_names}) ")
+    secondary_var = int(secondary_var)
+    for j, size in enumerate(sizes):
+        folder = PATH_PROCESSED_DATA  
+        results = []
+        for file in os.listdir(folder):
+            if file.endswith('.xlsx'):
+                full_path = os.path.join(folder, file)
+                xl = pd.ExcelFile(full_path)
+                
+                for nom_feuille in xl.sheet_names:
+                    df = pd.read_excel(full_path, sheet_name=nom_feuille)
+                    
+                    last_line_given_size = df[df.iloc[:, 0] == size].tail(1) #only retains one measurement for a size
+                    
+                    col_values = last_line_given_size[columns]
+                    
+                    parametres = file.split('_')[0]
+                    parametres_list = parametres.split('-')
+                    
+                    results.append(parametres_list + list(col_values.values.flatten()))
+        results_np = np.array(results).T
+        secondaries = results_np[secondary_var]
+        primaries = results_np[primary_var].astype(float)
+        for i, column in enumerate(columns):
+            values = results_np[len(parametres_list) + i].astype(float)
+            unique_secondaries = np.unique(secondaries)
+        
+            fig, ax = plt.subplots()
+        
+            for secondary in unique_secondaries:
+                indices = secondaries == secondary
+                ax.plot(primaries[indices], values[indices], '-o', label=f'{param_names[secondary_var]} {secondary}')
+        
+            ax.set_xlabel(f'{param_names[primary_var]}')
+            ax.set_ylabel(f'{column}')
+            ax.set_title(f'{column} - {size}x{size}µm²')
+            ax.legend()
+            
+            filename = f'Report - {size}um2 - {column} comparison.png'
+
+            # Chemin complet pour enregistrer le fichier
+            full_path = os.path.join(PATH_OUTPUT, filename)
+
+            # Enregistrer le graphique dans le dossier spécifié
+            plt.savefig(full_path)
+
+            # Fermer la figure après l'enregistrement pour libérer la mémoire
+            plt.close()
 
 
 ## --------------- MAIN BLOCK
@@ -417,71 +505,82 @@ for process in exp_list_process:
 
 ### CALCULATIONS + STORE RESULT
 calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
-if not calculate=="yes":
-    exit()
+if calculate=="yes":
 
-print("\n***********Calculation started*********")
+    print("\n***********Calculation started*********")
 
-calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
+    calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
 
-test_exp = []
-for chip in chips_in_interim:
-    test_exp.append(get_experience_from_chip(chip,process_param_df))
+    test_exp = []
+    for chip in chips_in_interim:
+        test_exp.append(get_experience_from_chip(chip,process_param_df))
 
-for exp in test_exp: 
-    chips_str = get_chips_from_experience(exp, process_param_df)
-    new_path = PATH_PROCESSED_DATA + "\\" + exp + "_" + chips_str + ".xlsx"
+    for exp in test_exp: 
+        chips_str = get_chips_from_experience(exp, process_param_df)
+        new_path = PATH_PROCESSED_DATA + "\\" + exp + "_" + chips_str + ".xlsx"
 
-    calculate = True
-    if os.path.exists(new_path):
-        continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chips_str+" already exists. Do you want to recalculate? yes/no: ")
-        if not continue_calculation == "yes":
-            calculate = False
+        calculate = True
+        if os.path.exists(new_path):
+            continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chips_str+" already exists. Do you want to recalculate? yes/no: ")
+            if not continue_calculation == "yes":
+                calculate = False
 
-    if calculate:
-        result_df = pd.DataFrame(columns=["Geometry","Placement"])
-        table_experience = select_capas_with_parameter(interim_files, [exp],3)
-        Geom_table = []
-        Placement_table = []
-        for name_file in table_experience:
-            Geom_table.append(name_file.split("_")[1])
-            Placement_table.append(name_file.split("_")[2])
-        result_df["Geometry"] = Geom_table
-        result_df["Placement"] = Placement_table
+        if calculate:
+            result_df = pd.DataFrame(columns=["Geometry","Placement"])
+            table_experience = select_capas_with_parameter(interim_files, [exp],3)
+            Geom_table = []
+            Placement_table = []
+            for name_file in table_experience:
+                Geom_table.append(name_file.split("_")[1])
+                Placement_table.append(name_file.split("_")[2])
+            result_df["Geometry"] = Geom_table
+            result_df["Placement"] = Placement_table
 
-        for graph_type in LIST_GRAPH:
-            if extract_pattern_in_string(graph_type, "P-V") is not None:
-                voltage = extract_voltage_in_graphtype(graph_type, "P-V")
-                result_df["Pos Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
-                if calculate_neg == "yes":
-                    result_df["Neg Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
-                print("Polarisations calculated for plot " + graph_type)
+            for graph_type in LIST_GRAPH:
+                if extract_pattern_in_string(graph_type, "P-V") is not None:
+                    voltage = extract_voltage_in_graphtype(graph_type, "P-V")
+                    result_df["Pos Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
+                    if calculate_neg == "yes":
+                        result_df["Neg Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
+                    print("Polarisations calculated for plot " + graph_type)
 
-                result_df["Pos Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,0]
-                if calculate_neg == "yes":
-                    result_df["Neg Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,1]
-                print("Coercive fields calculated for plot " + graph_type)
-            
-            elif extract_pattern_in_string(graph_type, "IV") is not None:
-                voltage = extract_voltage_in_graphtype(graph_type, "IV")
-                result_df["Pos Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,0]
-                if calculate_neg == "yes":
-                    result_df["Neg Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,1]
-                print("Leakage currents calculated for plot " + graph_type)
-
-            elif extract_pattern_in_string(graph_type, "PUND") is not None:
-                result_df["Pos Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,0]
-                if calculate_neg == "yes":
-                    result_df["Neg Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,1]
-                print("Polarisations calculated for plot " + graph_type)
+                    result_df["Pos Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,0]
+                    if calculate_neg == "yes":
+                        result_df["Neg Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,1]
+                    print("Coercive fields calculated for plot " + graph_type)
                 
-            elif extract_pattern_in_string(graph_type, "CV") is not None:
-                # calculate coercive field
-                print("Calculations based on CV plots not implemented yet.")
+                elif extract_pattern_in_string(graph_type, "IV") is not None:
+                    voltage = extract_voltage_in_graphtype(graph_type, "IV")
+                    result_df["Pos Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,0]
+                    if calculate_neg == "yes":
+                        result_df["Neg Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,1]
+                    print("Leakage currents calculated for plot " + graph_type)
 
-        ### STORE RESULT DF TO FILE IN PROCESSED FOLDER
-        os.makedirs(os.path.dirname(new_path), exist_ok=True)
-        with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
-            result_df.to_excel(writer, index=False)
+                elif extract_pattern_in_string(graph_type, "PUND") is not None:
+                    result_df["Pos Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,0]
+                    if calculate_neg == "yes":
+                        result_df["Neg Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,1]
+                    print("Polarisations calculated for plot " + graph_type)
 
-print("\n***********Calculation completed*********")
+                    result_df["Pos Leakage PUND"] = Leakage_PUND(table_experience, 0)[:,0]
+                    if calculate_neg == "yes":
+                        result_df["Neg Leakage PUND"] = Leakage_PUND(table_experience, 0)[:,1]
+                    print("Leakages calculated for plot " + graph_type)
+                    
+                elif extract_pattern_in_string(graph_type, "CV") is not None:
+                    # calculate coercive field
+                    print("Calculations based on CV plots not implemented yet.")
+
+            ### STORE RESULT DF TO FILE IN PROCESSED FOLDER
+            os.makedirs(os.path.dirname(new_path), exist_ok=True)
+            with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
+                result_df.to_excel(writer, index=False)
+
+    print("\n***********Calculation completed*********")
+
+SIZES = [50, 100, 150]
+OBSERVABLES = ['Pos Coercive field 5V_1', 'Neg Coercive field 5V_1', 'Pos Polarisation PUND', 'Neg Polarisation PUND', 'Pos Leakage PUND', 'Neg Leakage PUND']
+plots_experience(SIZES, OBSERVABLES)
+print("Finished generating report plots !")
+
+
