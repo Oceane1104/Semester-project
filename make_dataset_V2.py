@@ -429,7 +429,7 @@ def plots_experience(sizes, columns):
             ax.set_title(f'{column} - {size}x{size}µm²')
             ax.legend()
             
-            filename = f'Report - {size}um2 - {column} comparison.png'
+            filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
 
             # Chemin complet pour enregistrer le fichier
             full_path = os.path.join(PATH_OUTPUT, filename)
@@ -575,7 +575,7 @@ if calculate=="yes":
     print("\n***********Calculation completed*********")
 
 SIZES = [50, 100, 150]
-OBSERVABLES = ['Pos Coercive field 5V_1', 'Neg Coercive field 5V_1', 'Pos Polarisation PUND', 'Neg Polarisation PUND', 'Pos Leakage PUND', 'Neg Leakage PUND']
+OBSERVABLES = ['Pos Coercive field 5V_1', 'Pos Polarisation PUND',  'Pos Leakage PUND']
 plots_experience(SIZES, OBSERVABLES)
 print("Finished generating report plots !")
 
