@@ -21,10 +21,10 @@ from tools import integrate_pund_lkg
 
 ### CHANGE IF NECESSARY
 #---graph types to load
-LIST_GRAPH = ["P-V 3V_2#1", "P-V 4V_2#1", "P-V 5V_1#1", "IV 3V_1#1", "PUND 5V_1#1", "CV 3V_1#1"]
+LIST_GRAPH = ["P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1" ]
 
 #---chips to load or calculate
-selected_chips = ""
+selected_chips = ["ml_4may02", "ml_4apr06", "ml_4apr01", "ml_4apr07"]
 #selected_chips = "" # if you want to load all chips in the process parameter file
 
 ## PATHS
@@ -445,7 +445,8 @@ def plots_experience(sizes, columns):
 # load parameters
 process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
 geom_param_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
-chip_names = process_param_df.index
+#chip_names = process_param_df.index
+chip_names = selected_chips
 list_graph_str = ' / '.join(LIST_GRAPH)
 load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
 if load=="yes":
