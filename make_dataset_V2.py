@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from tools import extract_pattern_in_string
 from tools import get_chips_from_experience
 from tools import get_experience_from_chip
+from tools import extract_info_in_capa_name
 from tools import select_capas_with_parameter
 from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
@@ -51,6 +52,15 @@ PATH_INTERIM_DATA = PATH_FOLDER + '\\Data\\Interim'
 PATH_PROCESSED_DATA = PATH_FOLDER + '\\Data\\Processed'
 PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
+
+
+#***** Function: get_area *****
+def get_area(geom_param_df):
+    
+    area = 0
+    size = 0
+    area = (int(size)*10**(-4))**2
+    return area
 
 #***** Function: extract_capa_info *****
 # Input: filename of raw data, graph type, geomParam dataframe
@@ -211,9 +221,9 @@ def load_interim_data(interim_file_name, graph_type):
                 # Read the Excel file
                 data_df = pd.read_excel(file_path, sheet_name=graph_type)
             else:
-                print("\nERROR: Sheet name",  graph_type ,"inexistant for capacitor", interim_file_name, "\n")
+                print("WARNING: Sheet name",  graph_type ,"inexistant for capacitor", interim_file_name)
     else:
-        print("\nERROR: File",interim_file_name,"doesn't exist in path", file_path, "\n")
+        print("ERROR: File",interim_file_name,"doesn't exist in path", file_path)
 
     return data_df
 
@@ -441,6 +451,14 @@ def plots_experience(sizes, columns):
             # Fermer la figure après l'enregistrement pour libérer la mémoire
             plt.close()
 
+def get_chip_name(capa_name, chip_list):
+    chip = None
+    for chip in chip_list:
+        temp = extract_pattern_in_string(capa_name, chip)
+        if temp is not None:
+            chip = temp
+    return chip
+
 
 ## --------------- MAIN BLOCK
 # load parameters
@@ -473,18 +491,16 @@ if load=="yes":
 interim_files = []
 chips_in_interim = []
 for root, dirs, files in os.walk(PATH_INTERIM_DATA):
+    for dir in dirs:
+        chips_in_interim.append(dir)
     for file in files:
         if file.endswith(".xlsx"):
-            chip = file.split("_")[0]
-            if chip in chip_names:
-                chips_in_interim.append(chip)
-                interim_files.append(os.path.splitext(file)[0])
+            interim_files.append(os.path.splitext(file)[0])
 chips_in_interim = np.unique(chips_in_interim)
 print("\nChips in interim: ",chips_in_interim)
 not_loaded_chips = [element for element in chip_names if element not in chips_in_interim]
 print("Chips not in interim: ",not_loaded_chips)
-
-
+print("Number of files in interim: ", len(interim_files))
 
 ### GET LIST OF EXPERIENCES
 exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.astype(str).tolist()]
@@ -492,14 +508,17 @@ exp_list_process = np.unique(exp_list_process)
 exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.astype(str).tolist()]
 exp_list_geometry = np.unique(exp_list_geometry)
 print("List of all possible process experiences:", exp_list_process)
-#print("\nList of all possible geometry experiences:\n", exp_list_geometry)
+print("\nList of all possible geometry experiences:\n", exp_list_geometry)
 exp_list_all = []
 for process in exp_list_process:
     for geom in exp_list_geometry:
         exp_list_all.append(geom + "_" + process)
 #print("\nList of all possible combination of experiences:\n", exp_list_all)
 
-
+#for capa in interim_files:
+#    infos = extract_info_in_capa_name(capa, chips_in_interim, exp_list_process, exp_list_geometry)
+#    print("\nCapa: ",capa, "\nInfos: ", infos)
+          
 ### CALCULATIONS + STORE RESULT
 calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
 if calculate=="yes":
@@ -513,7 +532,8 @@ if calculate=="yes":
         test_exp.append(get_experience_from_chip(chip,process_param_df))
 
     for exp in test_exp: 
-        chips_str = get_chips_from_experience(exp, process_param_df)
+        chips_list = get_chips_from_experience(exp, process_param_df, get_str=False)
+        chips_str = "_".join(chips_list)
         new_path = PATH_PROCESSED_DATA + "\\" + exp + "_" + chips_str + ".xlsx"
 
         calculate = True
@@ -523,15 +543,16 @@ if calculate=="yes":
                 calculate = False
 
         if calculate:
-            result_df = pd.DataFrame(columns=["Geometry","Placement"])
-            table_experience = select_capas_with_parameter(interim_files, [exp],3)
-            Geom_table = []
-            Placement_table = []
-            for name_file in table_experience:
-                Geom_table.append(name_file.split("_")[1])
-                Placement_table.append(name_file.split("_")[2])
-            result_df["Geometry"] = Geom_table
-            result_df["Placement"] = Placement_table
+            table_experience = select_capas_with_parameter(interim_files, [exp], 3)
+            
+            result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Geometry","Placement"])
+
+            for i in range(len(table_experience)):
+                infos = extract_info_in_capa_name(table_experience[i], chips_list, [exp], exp_list_geometry)
+ 
+                result_df.iloc[i, result_df.columns.get_loc("Chip")] = infos[0]
+                result_df.iloc[i, result_df.columns.get_loc("Geometry")] = infos[1]
+                result_df.iloc[i, result_df.columns.get_loc("Placement")] = infos[2]
 
             for graph_type in LIST_GRAPH:
                 if extract_pattern_in_string(graph_type, "P-V") is not None:
@@ -568,10 +589,13 @@ if calculate=="yes":
                     # calculate coercive field
                     print("Calculations based on CV plots not implemented yet.")
 
+            # clean result df (remove empty columns)
+            result_df_cleaned = result_df.dropna(axis=1, how='all')
+
             ### STORE RESULT DF TO FILE IN PROCESSED FOLDER
             os.makedirs(os.path.dirname(new_path), exist_ok=True)
             with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
-                result_df.to_excel(writer, index=False)
+                result_df_cleaned.to_excel(writer, index=False)
 
     print("\n***********Calculation completed*********")
 

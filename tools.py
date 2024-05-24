@@ -34,6 +34,41 @@ def load_geom_param_df(PATH):
     print('Geometrical parameter names:', ', '.join(map(str,geom_param_names)))
     return geom_param
 
+
+#***** Function: extract_pattern_in_string *****
+def extract_info_in_capa_name(capa_name, chip_list, process_exp_list, geom_exp_list):
+    rest_parts = capa_name
+
+    # get chip name
+    chip_name = ""
+    for chip in chip_list:
+        if re.search(chip, rest_parts):
+            rest_parts_l = re.split(chip, rest_parts) # returns full string if pattern cannot be found
+            rest_parts = ''.join(rest_parts_l)
+            chip_name = chip
+
+    # get geometrical parameter
+    geom_param = ""
+    for param in geom_exp_list:
+        if re.search(param, rest_parts):
+            rest_parts_l = re.split("_"+param+"_", rest_parts) # returns full string if pattern cannot be found
+            rest_parts = ''.join(rest_parts_l)
+            geom_param = param
+
+    # get process parameter
+    process_param = ""
+    for param in process_exp_list:
+        if re.search(param, rest_parts):
+            rest_parts_l = re.split("_"+param, rest_parts) # returns full string if pattern cannot be found
+            rest_parts = ''.join(rest_parts_l)
+            process_param = param
+
+    # get placement 
+    #rest_parts_l = re.split("_", rest_parts) # returns full string if pattern cannot be found
+    placement = rest_parts
+
+    return chip_name, geom_param, placement, process_param
+
 #***** Function: extract_pattern_in_string *****
 def extract_pattern_in_string(string, pattern):
     # Expression régulière pour rechercher le motif "P-V 1V_1#1" dans le nom de fichier
@@ -53,7 +88,7 @@ def extract_voltage_in_graphtype(graph_type, mmnt_type):
     return voltage
 
 #***** Function: get_chips_from_experience *****
-def get_chips_from_experience(experience_string, param_df):
+def get_chips_from_experience(experience_string, param_df, get_str = True):
     experience_parts = experience_string.split('-')
     # Get the number of parameter
     nb_params = len(param_df.columns)
@@ -72,12 +107,16 @@ def get_chips_from_experience(experience_string, param_df):
             #print(chip_list)
             df_temp = df_temp.loc[chip_list] # continue only with rows which have the correct parameter
 
-        chip_list_final = "_".join(df_temp.index)
+        chip_list_final = df_temp.index.tolist()
+        chip_list_final_str = "_".join(df_temp.index)
     else:
         print('Error: Number of parameters are not equal')
-    if chip_list_final == "":
+    if chip_list_final_str == "":
         print('No chips for the experience', experience_string, 'found')
-    return chip_list_final
+    if get_str:
+        return chip_list_final_str
+    else: 
+        return chip_list_final
 
 
 #***** Function: get_experience_from_chip *****
