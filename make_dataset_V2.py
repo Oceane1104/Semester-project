@@ -165,11 +165,12 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
             sheet_name_list.append(graph_list[idx])
 
         #***** Create the PV 5V plot and load it in the interim file *****
-        pundp_index = sheet_name_list.index('PUND 5V_1#1')
-        pundp_data = data_list[pundp_index]
-        pv_5v_df = PUND_to_PV(pundp_data) 
-        data_list.append(pv_5v_df)
-        sheet_name_list.append('P-V 5V_1#1')
+        if 'PUND 5V_1#1' in sheet_name_list:    
+            pundp_index = sheet_name_list.index('PUND 5V_1#1')
+            pundp_data = data_list[pundp_index]
+            pv_5v_df = PUND_to_PV(pundp_data) 
+            data_list.append(pv_5v_df)
+            sheet_name_list.append('P-V 5V_1#1')
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
