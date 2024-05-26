@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import re
 import numpy as np
 
-from tools import butter_lowpass_filter, load_process_param_df, PATH_PROCESS_PARAM_FILE, load_geom_param_df, PATH_GEOM_PARAM_FILE
+from tools import butter_lowpass_filter, load_process_param_df, load_geom_param_df
 
-from plot_settings import TITLE, LABEL, SIZE_TITLE, SIZE_AXIS, SIZE_LABELS, SIZE_GRADUATION, SIZE_PLOTS, SIZE_LINE, LABEL_EXP, LABEL_PLAC, LABEL_GEO, BOX_PLACE, LOC_PLACE, SHOW_PLOTS, PATH_PROCESSED_DATA
+from plot_settings import TITLE, LABEL, SIZE_TITLE, SIZE_AXIS, SIZE_LABELS, SIZE_GRADUATION, SIZE_PLOTS, SIZE_LINE, LABEL_EXP, LABEL_PLAC, LABEL_GEO, BOX_PLACE, LOC_PLACE, SHOW_PLOTS
 
 COLORS = ['blue', 'red', 'green', 'orange', 'purple', 'yellow', 'orange', 'cyan', 'brown', 'gray', 'olive', 'pink']
 
@@ -190,52 +190,3 @@ def plot_CV(data_list, graph_type, interim_path, output_path):
         plt.show()
     return
 
-def load_files_from_processed(names, voltage, sign, types, uniques_values):
-
-    data = []
-
-    for filename in os.listdir(PATH_PROCESSED_DATA):
-        if os.path.splitext(filename)[0] in names:
-            file_path = os.path.join(PATH_PROCESSED_DATA, filename)
-            try:
-                df = pd.read_csv(file_path) 
-                #Pos Polarisation 3V_2
-                if f"{sign} Polarization {types}" in df.columns:
-                    data.extend(df[f"{sign} {types} {voltage}"].tolist())
-                else:
-                    print(f"Le fichier {filename} ne contient pas de colonne 'type'.")
-            except Exception as e:
-                print(f"Erreur lors du chargement du fichier {filename}: {e}")
-    return data
-
-def plot_mean_pol(voltage, types, output_path, sign, x_param):
-    process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
-    geom_param_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
-    ### GET LIST OF EXPERIENCES
-    exp_list_process = ['-'.join(map(str, row)) for row in process_param_df.values.astype(str).tolist()]
-    exp_list_process = np.unique(exp_list_process)
-    exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.astype(str).tolist()]
-    exp_list_geometry = np.unique(exp_list_geometry)
-    #print("\nList of all possible geometry experiences:\n", exp_list_geometry)
-    exp_list_all = []
-    for process in exp_list_process:
-        for geom in exp_list_geometry:
-            exp_list_all.append(geom + "_" + process)
-
-    # Trouver l'index de x_param dans la première ligne de process_param_df
-    try:
-        index_x_param = process_param_df.columns.get_loc(x_param)
-        adjusted_index = index_x_param - 1
-        print(f"Index de '{x_param}' dans la première ligne : {index_x_param}, Index ajusté : {adjusted_index}")
-    except KeyError:
-        print(f"'{x_param}' n'est pas une colonne de process_param_df.")
-        return
-    
-    # Lister toutes les valeurs uniques dans la colonne x_param
-    unique_values = process_param_df[x_param].unique()
-    print(f"Valeurs uniques dans la colonne '{x_param}': {unique_values}")
-
-    data = load_files_from_processed(exp_list_all, voltage, sign, types, unique_values)
-
-    nb_plots = 0
-    return

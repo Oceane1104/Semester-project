@@ -4,6 +4,9 @@ import numpy as np
 import glob
 import time
 import xlrd
+
+from plot_settings import TITLE
+
 # import functions from other python files
 from tools import extract_pattern_in_string
 from tools import get_chips_from_experience
@@ -18,10 +21,9 @@ from Visualize import plot_PV, plot_CV, plot_pund, plot_IV
 #from folder1.file1 import ma_fonction$
 
 # import plot settings
-from plot_settings import GRAPHES_TO_PLOT
+from plot_settings import GRAPHES_TO_PLOT 
 from plot_settings import GRAPH_VOLTAGES
 
-from plot_settings import TITLE
 from plot_settings import SELECTED_CHIPS
 from plot_settings import SELECTED_EXPERIENCES 
 from plot_settings import SELECTED_GEOMETRIES
@@ -52,7 +54,6 @@ PATH_PROCESSED_DATA = PATH_FOLDER + '\\Data\\Processed'
 PATH_INTERIM_DATA = PATH_FOLDER + '\\Data\\Interim'
 PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
-
 
 ### Load parameters
 param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
@@ -87,8 +88,6 @@ for graph in GRAPHES_TO_PLOT:
         
     elif extract_pattern_in_string(graph, "PUND") is not None:
         plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
-
-
 
 ### Plot results
 # nom du fichier
