@@ -253,13 +253,13 @@ def Polarisation(name_files, graph_type):
             charge_mi = min(data['Charge'])
             diff_charge = (charge_ma + charge_mi)/2
 
-            debut_phase2 = size_phase/4
-            fin_phase2 = 3*size_phase/4
+            debut_phase2 = int(size_phase/4)
+            fin_phase2 = int(3*size_phase/4)
             df_phase2 = data.iloc[debut_phase2:fin_phase2]
             indice_zero = (df_phase2['Vforce'] - 0).abs().idxmin()
             courant_en_zero_pos = df_phase2.loc[indice_zero, 'Charge']
 
-            debut_phase = 3*size_phase/4
+            debut_phase = int(3*size_phase/4)
             size_table = len(data['Charge'])-1
             df_phase3 = data.iloc[debut_phase:size_table]
             indice_zero_2 = (df_phase3['Vforce'] - 0).abs().idxmin()
@@ -325,13 +325,13 @@ def Coercive(name_files, graph_type):
             diff_charge = (charge_ma + charge_mi)/2
             size_phase = len(data['Charge']-1)
 
-            debut_phase2 = size_phase/4
-            fin_phase2 = 3*size_phase/4
+            debut_phase2 = int(size_phase/4)
+            fin_phase2 = int(3*size_phase/4)
             df_phase2 = data.iloc[debut_phase2:fin_phase2]
             indice_zero = (df_phase2['Charge'] - diff_charge).abs().idxmin()
             Volt_en_zero_pos = df_phase2.loc[indice_zero, 'Vforce']
 
-            fin_phase = size_phase/4
+            fin_phase = int(size_phase/4)
             df_phase3 = data.iloc[0:fin_phase]
             indice_zero_2 = (df_phase3['Charge'] - diff_charge).abs().idxmin()
             Volt_en_zero_neg = df_phase3.loc[indice_zero_2, 'Vforce']
@@ -532,10 +532,12 @@ if calculate=="yes":
     calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
 
     test_exp = []
-    print(chips_in_interim)
     for chip in chips_in_interim:
         print(chip)
-        test_exp.append(get_experience_from_chip(chip,process_param_df))
+        if chip in process_param_df.index:
+            test_exp.append(get_experience_from_chip(chip,process_param_df))
+        else:
+            print("WARNING: chip", chip, "not in para_df => no experience found")
 
     for exp in test_exp: 
         chips_list = get_chips_from_experience(exp, process_param_df, get_str=False)
