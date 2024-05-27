@@ -1,5 +1,5 @@
 # Plot settings
-TITLE = "Comparison of the chip DE10FE12x2 and DE1FE8x8"
+TITLE = "Comparison all the chip, test"
 LABEL_EXP = True
 LABEL_PLAC = True
 LABEL_GEO = True
@@ -23,9 +23,9 @@ UNIT_Y = 1
 units = ""
 
 # Choose experience
-SELECTED_CHIPS = ["ml4apr06", "ml4may02"]
+SELECTED_CHIPS = ["ml4apr06", "ml4may02", "ml4apr01", "ml4may07", "ml4apr05", "ml4apr07", "ml4may01", "ml4may03"]
 SELECTED_EXPERIENCES = []
-SELECTED_GEOMETRIES =  ["100"]
+SELECTED_GEOMETRIES =  ["200", "100"]
 SELECTED_PLACEMENTS = []
 
 # --> moyenne ?
@@ -33,7 +33,7 @@ SELECTED_PLACEMENTS = []
 # Choose graphes ! several at once
 #GRAPHES_TO_PLOT = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", "P-V 10V_1#1",
 #                   "PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
-GRAPHES_TO_PLOT = ["P-V 1V_10#1"]
+GRAPHES_TO_PLOT = ["P-V 29V_1#1", "P-V 34V_1#1", "P-V 36V_1#1", "P-V 37V_1#1", "PUND 7V_for7V#1"]
 GRAPH_VOLTAGES = ["1"] # currently not used just enter the complet graph name above
 
 SHOW_PLOTS = True # put False if you don't want to show all plots during plot generation
