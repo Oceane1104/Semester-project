@@ -16,7 +16,7 @@ from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
 from tools import load_geom_param_df
 from tools import get_file_names
-from Visualize import plot_PV, plot_CV, plot_pund, plot_IV
+from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special
 
 #from folder1.file1 import ma_fonction$
 
@@ -28,6 +28,7 @@ from plot_settings import SELECTED_CHIPS
 from plot_settings import SELECTED_EXPERIENCES 
 from plot_settings import SELECTED_GEOMETRIES
 from plot_settings import SELECTED_PLACEMENTS
+from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT
 
 ## PATHS
 user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
@@ -59,35 +60,65 @@ PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
 geom_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
 
-chip_names = np.array(param_df.index)
-if SELECTED_CHIPS != []:
-    chip_names = SELECTED_CHIPS
-#SELECTED_CHIPS = chip_names
-#print(chip_names)
+if (not(SPECIAL)):
 
-### Select capacitors to plot
-interim_files = get_file_names(PATH_INTERIM_DATA, chip_names)
+    chip_names = np.array(param_df.index)
+    if SELECTED_CHIPS != []:
+        chip_names = SELECTED_CHIPS
+    #SELECTED_CHIPS = chip_names
+    #print(chip_names)
 
-capas_with_process = select_capas_with_parameter(interim_files, SELECTED_EXPERIENCES, 3)
-capas_with_geom = select_capas_with_parameter(capas_with_process, SELECTED_GEOMETRIES, 1)
-capas_to_plot = select_capas_with_parameter(capas_with_geom, SELECTED_PLACEMENTS, 2)
-print("selected capacitors:",capas_to_plot)
+    ### Select capacitors to plot
+    interim_files = get_file_names(PATH_INTERIM_DATA, chip_names)
+
+    capas_with_process = select_capas_with_parameter(interim_files, SELECTED_EXPERIENCES, 3)
+    capas_with_geom = select_capas_with_parameter(capas_with_process, SELECTED_GEOMETRIES, 1)
+    capas_to_plot = select_capas_with_parameter(capas_with_geom, SELECTED_PLACEMENTS, 2)
+    print("selected capacitors:",capas_to_plot)
 
 
-### Plot graphes
-for graph in GRAPHES_TO_PLOT:
-    print("\n***** Plotting of graph", graph)
-    if extract_pattern_in_string(graph, "P-V") is not None:
-        plot_PV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+    ### Plot graphes
+    for graph in GRAPHES_TO_PLOT:
+        print("\n***** Plotting of graph", graph)
+        if extract_pattern_in_string(graph, "P-V") is not None:
+            plot_PV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
 
-    elif extract_pattern_in_string(graph, "IV") is not None:
-        plot_IV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
-        
-    elif extract_pattern_in_string(graph, "CV") is not None:
-        plot_CV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
-        
-    elif extract_pattern_in_string(graph, "PUND") is not None:
-        plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+        elif extract_pattern_in_string(graph, "IV") is not None:
+            plot_IV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+            
+        elif extract_pattern_in_string(graph, "CV") is not None:
+            plot_CV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+            
+        elif extract_pattern_in_string(graph, "PUND") is not None:
+            plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+else:
+    chip_names = np.array(param_df.index)
+    if SPECIAL_CHIPS != []:
+        chip_names = SPECIAL_CHIPS
+    #SELECTED_CHIPS = chip_names
+    #print(chip_names)
+
+    capas_to_plot = []
+    total_graph = []
+    for i, chip in enumerate(chip_names):
+        interim_files = get_file_names(PATH_INTERIM_DATA, chip)
+
+        capas_with_process_inter = select_capas_with_parameter(interim_files, SPECIAL_EXPERIENCES, 3)
+        capas_with_geom_inter = select_capas_with_parameter(capas_with_process_inter, SPECIAL_GEOMETRIES, 1)
+        capas_to_plot_inter = select_capas_with_parameter(capas_with_geom_inter, SPECIAL_PLACEMENT, 2)
+
+        total_graph.extend([SPECIAL_PLOT[i]] * len(capas_to_plot_inter))
+
+        # Étendre la liste de tous les capaciteurs sélectionnés
+        capas_to_plot.extend(capas_to_plot_inter)
+
+    print("selected capacitors:",capas_to_plot)
+    print("selected graph:",total_graph)
+
+    ### Plot graphes
+    print("\n***** Plotting of graph", SPECIAL_PLOT)
+    if extract_pattern_in_string(SPECIAL_PLOT[0], "P-V") is not None:
+        plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, SPECIAL_PLOT)
 
 ### Plot results
 # nom du fichier

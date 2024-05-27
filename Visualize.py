@@ -32,7 +32,7 @@ def load_interim_data(interim_file_name, graph_type, interim_path):
 
     return data_df
 
-def define_label_name(file_name, process_df, geom_df):
+def define_label_name(file_name, process_df, geom_df, graph_type = ""):
     chip_name, geometrical, placement, experience = file_name.split("_") 
 
     process_names = process_df.columns
@@ -53,7 +53,9 @@ def define_label_name(file_name, process_df, geom_df):
     name_end = chip_name.split(name_start)[1]
     chip_name_new = name_start + "_" + name_end
 
-    label_name = "Chip: " + chip_name_new
+    label_name = "Chip: " + chip_name_new 
+    if graph_type != "":
+        label_name = label_name + "Graph: "+ graph_type
     if (LABEL_EXP):
         for i in range(len(process_names)):
             label_name = label_name + ", " + process_names[i] + ": " + exp_parts[i]
@@ -193,3 +195,42 @@ def plot_CV(data_list, graph_type, interim_path, output_path, process_df, geom_d
         plt.show()
     return
 
+def plot_PV_special(data_list, graph_type, interim_path, output_path, special_graph, process_df, geom_df):
+    nb_plots = 0
+
+    plt.figure(figsize=SIZE_PLOTS)
+    colors = COLORS # Liste de couleurs pour les courbes
+    
+    for i, file_name in enumerate(data_list):
+        data = load_interim_data(file_name, graph_type[i], interim_path)
+        if data.empty:
+            continue
+        nb_plots += 1
+        geometrical =file_name.split("_")[1]
+        size = geometrical.split("-")[0]
+        Size_num = int(size)
+        area = (Size_num*10**(-6))**2
+        
+        charge_ma = max(data['Charge'])
+        charge_mi = min(data['Charge'])
+
+        diff_charge = (charge_ma + charge_mi)/2
+
+        label_name = define_label_name(file_name, process_df, geom_df, graph_type)
+        plt.plot(data['Vforce'], (data['Charge'] - diff_charge)/area, marker='o', label=f"{label_name}", 
+                        color=colors[(i-1)%len(colors)], linewidth=SIZE_LINE)
+    if nb_plots == 0:
+        print("No", graph_type, "data available for for capacitors", data_list)
+        return
+    plt.title(f"{list(set(special_graph))} {TITLE}", fontsize=SIZE_TITLE)
+    plt.xlabel('Voltage [V]', fontsize=SIZE_AXIS)
+    plt.ylabel('Polarisation [mC/cm2]', fontsize=SIZE_AXIS)
+    plt.grid(True)
+    plt.legend(loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
+    #plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=SIZE_LABELS)
+    plt.tick_params(axis='both', labelsize=SIZE_GRADUATION)
+    # Sauvegarder le plot dans le dossier spécifié avec le titre comme nom de fichier
+    plt.savefig(os.path.join(output_path, f"{list(set(special_graph))}_{TITLE}.png"))
+    if SHOW_PLOTS:
+        plt.show()
+    return
