@@ -57,12 +57,12 @@ PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 
 ### Load parameters
-param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
+process_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
 geom_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
 
 if (not(SPECIAL)):
 
-    chip_names = np.array(param_df.index)
+    chip_names = np.array(process_df.index)
     if SELECTED_CHIPS != []:
         chip_names = SELECTED_CHIPS
     #SELECTED_CHIPS = chip_names
@@ -81,18 +81,18 @@ if (not(SPECIAL)):
     for graph in GRAPHES_TO_PLOT:
         print("\n***** Plotting of graph", graph)
         if extract_pattern_in_string(graph, "P-V") is not None:
-            plot_PV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+            plot_PV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
 
         elif extract_pattern_in_string(graph, "IV") is not None:
-            plot_IV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+            plot_IV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
             
         elif extract_pattern_in_string(graph, "CV") is not None:
-            plot_CV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+            plot_CV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
             
         elif extract_pattern_in_string(graph, "PUND") is not None:
-            plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT)
+            plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
 else:
-    chip_names = np.array(param_df.index)
+    chip_names = np.array(process_df.index)
     if SPECIAL_CHIPS != []:
         chip_names = SPECIAL_CHIPS
     #SELECTED_CHIPS = chip_names
@@ -118,7 +118,7 @@ else:
     ### Plot graphes
     print("\n***** Plotting of graph", SPECIAL_PLOT)
     if extract_pattern_in_string(SPECIAL_PLOT[0], "P-V") is not None:
-        plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, SPECIAL_PLOT)
+        plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, SPECIAL_PLOT, process_df, geom_df)
 
 ### Plot results
 # nom du fichier
