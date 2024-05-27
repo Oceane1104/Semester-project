@@ -600,6 +600,20 @@ if calculate=="yes":
             # clean result df (remove empty columns)
             result_df_cleaned = result_df.dropna(axis=1, how='all')
 
+            # Calculer les moyennes et les écarts types pour chaque colonne (en ignorant les valeurs vides)
+            means = result_df_cleaned.iloc[:, 3:].mean(axis=0, skipna=True)
+            stds = result_df_cleaned.iloc[:, 3:].std(axis=0, skipna=True)
+
+            # Créer les nouvelles lignes MEA et STD
+            mea_row = ['MEA'] + ['MEA'] + ['MEA'] + means.tolist()
+            std_row = ['STD'] + ['STD'] + ['STD'] + stds.tolist()
+
+            # Créer un DataFrame temporaire pour les nouvelles lignes
+            new_rows = pd.DataFrame([mea_row, std_row], columns=result_df_cleaned.columns)
+
+            # Concaténer le DataFrame existant avec les nouvelles lignes
+            result_df_cleaned = pd.concat([result_df_cleaned, new_rows], ignore_index=True)
+
             ### STORE RESULT DF TO FILE IN PROCESSED FOLDER
             os.makedirs(os.path.dirname(new_path), exist_ok=True)
             with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
