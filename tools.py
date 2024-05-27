@@ -121,8 +121,12 @@ def get_chips_from_experience(experience_string, param_df, get_str = True):
 
 #***** Function: get_experience_from_chip *****
 def get_experience_from_chip(chip_name, param_df):
-    experience_list = param_df.loc[chip_name].to_list()
-    experience_string = '-'.join(map(str,experience_list))
+    if chip_name in param_df.columns:
+        experience_list = param_df.loc[chip_name].to_list()
+        experience_string = '-'.join(map(str,experience_list))
+    else:
+        experience_string = ""
+        print("WARNING: chip", chip_name, "not in para_df => no experience found")
     return experience_string
 
 
