@@ -25,7 +25,7 @@ from tools import integrate_pund_lkg
 LIST_GRAPH = ["P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1" ]
 
 #---chips to load or calculate
-selected_chips = ["ml4may02", "ml4apr06", "ml4apr01", "ml4apr07"]
+selected_chips = ["ml4apr01"]
 #selected_chips = "" # if you want to load all chips in the process parameter file
 
 ## PATHS
@@ -247,18 +247,20 @@ def Polarisation(name_files, graph_type):
             size = geometry.split('-')[0]
             area = (int(size)*10**(-4))**2
 
+            size_phase = len(data['Charge']-1)
+
             charge_ma = max(data['Charge'])
             charge_mi = min(data['Charge'])
             diff_charge = (charge_ma + charge_mi)/2
 
-            debut_phase2 = 200 
-            fin_phase2 = 600
+            debut_phase2 = size_phase/4
+            fin_phase2 = 3*size_phase/4
             df_phase2 = data.iloc[debut_phase2:fin_phase2]
             indice_zero = (df_phase2['Vforce'] - 0).abs().idxmin()
             courant_en_zero_pos = df_phase2.loc[indice_zero, 'Charge']
 
-            debut_phase = 600 
-            size_table = len(data)-1
+            debut_phase = 3*size_phase/4
+            size_table = len(data['Charge'])-1
             df_phase3 = data.iloc[debut_phase:size_table]
             indice_zero_2 = (df_phase3['Vforce'] - 0).abs().idxmin()
             courant_en_zero_neg = df_phase3.loc[indice_zero_2, 'Charge']
@@ -321,14 +323,15 @@ def Coercive(name_files, graph_type):
             charge_ma = max(data['Charge'])
             charge_mi = min(data['Charge'])
             diff_charge = (charge_ma + charge_mi)/2
+            size_phase = len(data['Charge']-1)
 
-            debut_phase2 = 200 
-            fin_phase2 = 600
+            debut_phase2 = size_phase/4
+            fin_phase2 = 3*size_phase/4
             df_phase2 = data.iloc[debut_phase2:fin_phase2]
             indice_zero = (df_phase2['Charge'] - diff_charge).abs().idxmin()
             Volt_en_zero_pos = df_phase2.loc[indice_zero, 'Vforce']
 
-            fin_phase = 200  
+            fin_phase = size_phase/4
             df_phase3 = data.iloc[0:fin_phase]
             indice_zero_2 = (df_phase3['Charge'] - diff_charge).abs().idxmin()
             Volt_en_zero_neg = df_phase3.loc[indice_zero_2, 'Vforce']
@@ -529,7 +532,9 @@ if calculate=="yes":
     calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
 
     test_exp = []
+    print(chips_in_interim)
     for chip in chips_in_interim:
+        print(chip)
         test_exp.append(get_experience_from_chip(chip,process_param_df))
 
     for exp in test_exp: 
