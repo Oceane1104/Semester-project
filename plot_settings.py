@@ -1,5 +1,5 @@
 # Plot settings
-TITLE = "Comparison all the chip, test"
+TITLE = "DE10FE12x2 vs DE10FE12x3"
 LABEL_EXP = True
 LABEL_PLAC = True
 LABEL_GEO = True
@@ -42,3 +42,12 @@ SHOW_PLOTS = True # put False if you don't want to show all plots during plot ge
 RESULTS_TO_PLOT = []
 RESULTS_X_AXIS = "parameter x"
 RESULTS_LABELS = ""
+
+SPECIAL = True
+
+SPECIAL_CHIPS = ["ml4apr07", "ml4apr06", "ml4apr06"]
+SPECIAL_EXPERIENCES = []
+SPECIAL_GEOMETRIES = ["200", "100"]
+SPECIAL_PLACEMENT = []
+
+SPECIAL_PLOT = ["P-V 40V_1#1", "P-V 29V_1#1", "P-V 34V_1#1"]
