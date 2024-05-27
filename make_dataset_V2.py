@@ -21,22 +21,24 @@ from tools import integrate_pund
 from tools import integrate_pund_lkg
 
 ### CHANGE IF NECESSARY
-#---graph types to load
-LIST_GRAPH = ["P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1" ]
+#---graph types to load: see below
 
 #---chips to load or calculate
-selected_chips = ["ml4apr01"]
+selected_chips = "" #["ml4apr01"]
 #selected_chips = "" # if you want to load all chips in the process parameter file
 
 ## PATHS
 user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
 
-if (user == "Nathalie"):      
-    #Nathalie
+if (user == "Nathalie"):     
     PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
+    LIST_GRAPH = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
+                  "P-V 10V_1#1","PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
 elif (user == "Océane"):
-    #OcéaneT
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
+    LIST_GRAPH = ["P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", 
+                  "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", 
+                  "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1" ]
 elif (user == "Tom"):
     print("Error:Need to create your path")
     exit()
@@ -180,7 +182,7 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
             pundp_data = data_list[pundp_index]
             pv_5v_df = PUND_to_PV(pundp_data) 
             data_list.append(pv_5v_df)
-            sheet_name_list.append('P-V 5V_1#1')
+            sheet_name_list.append('P-V 5V from PUND') ## can we name this sheet differently ? example: P-V 5V from PUND
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
@@ -210,9 +212,11 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
 def load_interim_data(interim_file_name, graph_type):
     # filename: chip name _ geometrical parameters _ capa placement _ process parameters
     chip_name = interim_file_name.split("_")[0]
-    file_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + interim_file_name + ".xlsx"
 
-    data_df = []
+    #chip_name, _,_,_ = extract_info_in_capa_name(interim_file_name, chip_list, [], [])
+
+    file_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + interim_file_name + ".xlsx"
+    data_df = pd.DataFrame()
 
     if os.path.exists(file_path): # check if file_path exists
         with pd.ExcelFile(file_path) as xls:
@@ -276,16 +280,16 @@ def Polarisation(name_files, graph_type):
 #***** Function: Polarisation *****
 # Input: file name, negative? (0 for PUND pos, 1 for PUND neg)
 # Output: Remanent polarisation positive and negative
-def Polarisation_PUND(name_files, negative):
+def Polarisation_PUND(name_files, negative, graph_type):
     polarisations = []
     for file in name_files:
         pol_max = np.nan
         pol_min = np.nan
         data = []
         if negative == 0:
-            data = load_interim_data(file, 'PUND 5V_1#1')
+            data = load_interim_data(file, graph_type)
         else:
-            data = load_interim_data(file, 'PUND 5V neg_1#1')
+            data = load_interim_data(file, graph_type)
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
@@ -366,16 +370,16 @@ def Leakage_current(name_files, graph_type):
     leakage = np.array(leakage)
     return leakage
 
-def Leakage_PUND(name_files, negative):
+def Leakage_PUND(name_files, negative, graph_type):
     leakage = []
     for file in name_files:
         lkg_max = np.nan
         lkg_min = np.nan
         data = []
         if negative == 0:
-            data = load_interim_data(file, 'PUND 5V_1#1')
+            data = load_interim_data(file, graph_type)
         else:
-            data = load_interim_data(file, 'PUND 5V neg_1#1')
+            data = load_interim_data(file, graph_type)
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
@@ -467,8 +471,8 @@ def get_chip_name(capa_name, chip_list):
 # load parameters
 process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
 geom_param_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
-#chip_names = process_param_df.index
-chip_names = selected_chips
+chip_names = process_param_df.index
+#chip_names = selected_chips
 list_graph_str = ' / '.join(LIST_GRAPH)
 load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
 if load=="yes":
@@ -528,35 +532,45 @@ calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for t
 if calculate=="yes":
 
     print("\n***********Calculation started*********")
-
     calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
 
-    test_exp = []
-    for chip in chips_in_interim:
-        print(chip)
-        if chip in process_param_df.index:
-            test_exp.append(get_experience_from_chip(chip,process_param_df))
-        else:
-            print("WARNING: chip", chip, "not in para_df => no experience found")
+    for exp in exp_list_process: 
+        print("\n***Calculations for experience", exp,"***")
+        #chips_with_exp = get_chips_from_experience(exp, process_param_df, get_str=False)
 
-    for exp in test_exp: 
-        chips_list = get_chips_from_experience(exp, process_param_df, get_str=False)
-        chips_str = "_".join(chips_list)
-        new_path = PATH_PROCESSED_DATA + "\\" + exp + "_" + chips_str + ".xlsx"
+        #chip_list = []
+        #for chip in chips_with_exp:
+        #    if chip in chips_in_interim:
+        #        chip_list.append(chip)
+
+        table_experience = []
+        chip_list = []
+        for capa in interim_files:
+            chip, geom, plac, process  = extract_info_in_capa_name(capa, chips_in_interim, [exp], exp_list_geometry)
+            if chip != "" and geom != "" and process != "":
+                table_experience.append(capa)
+                chip_list.append(chip)
+
+        if table_experience == []:
+            print("No capacitors found for experience", exp)
+            continue
+
+        chip_str = "_".join(np.unique(chip_list))
+        new_path = PATH_PROCESSED_DATA + "\\" + exp + "_" + chip_str + ".xlsx"
+        print("experience:", exp, "chips:",chip_str)
 
         calculate = True
         if os.path.exists(new_path):
-            continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chips_str+" already exists. Do you want to recalculate? yes/no: ")
+            continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chip_str+" already exists. Do you want to recalculate? yes/no: ")
             if not continue_calculation == "yes":
                 calculate = False
 
         if calculate:
-            table_experience = select_capas_with_parameter(interim_files, [exp], 3)
-            
+
             result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Geometry","Placement"])
 
             for i in range(len(table_experience)):
-                infos = extract_info_in_capa_name(table_experience[i], chips_list, [exp], exp_list_geometry)
+                infos = extract_info_in_capa_name(table_experience[i], chip_list, [exp], exp_list_geometry)
  
                 result_df.iloc[i, result_df.columns.get_loc("Chip")] = infos[0]
                 result_df.iloc[i, result_df.columns.get_loc("Geometry")] = infos[1]
@@ -568,30 +582,30 @@ if calculate=="yes":
                     result_df["Pos Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
                     if calculate_neg == "yes":
                         result_df["Neg Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
-                    print("Polarisations calculated for plot " + graph_type)
+                    #print("Polarisations calculated for plot " + graph_type)
 
                     result_df["Pos Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,0]
                     if calculate_neg == "yes":
                         result_df["Neg Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,1]
-                    print("Coercive fields calculated for plot " + graph_type)
+                    #print("Coercive fields calculated for plot " + graph_type)
                 
                 elif extract_pattern_in_string(graph_type, "IV") is not None:
                     voltage = extract_voltage_in_graphtype(graph_type, "IV")
                     result_df["Pos Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,0]
                     if calculate_neg == "yes":
                         result_df["Neg Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,1]
-                    print("Leakage currents calculated for plot " + graph_type)
+                    #print("Leakage currents calculated for plot " + graph_type)
 
                 elif extract_pattern_in_string(graph_type, "PUND") is not None:
-                    result_df["Pos Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,0]
+                    result_df["Pos Polarisation PUND"] = Polarisation_PUND(table_experience, 0, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df["Neg Polarisation PUND"] = Polarisation_PUND(table_experience, 0)[:,1]
-                    print("Polarisations calculated for plot " + graph_type)
+                        result_df["Neg Polarisation PUND"] = Polarisation_PUND(table_experience, 0, graph_type)[:,1]
+                    #print("Polarisations calculated for plot " + graph_type)
 
-                    result_df["Pos Leakage PUND"] = Leakage_PUND(table_experience, 0)[:,0]
+                    result_df["Pos Leakage PUND"] = Leakage_PUND(table_experience, 0, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df["Neg Leakage PUND"] = Leakage_PUND(table_experience, 0)[:,1]
-                    print("Leakages calculated for plot " + graph_type)
+                        result_df["Neg Leakage PUND"] = Leakage_PUND(table_experience, 0, graph_type)[:,1]
+                    #print("Leakages calculated for plot " + graph_type)
                     
                 elif extract_pattern_in_string(graph_type, "CV") is not None:
                     # calculate coercive field
