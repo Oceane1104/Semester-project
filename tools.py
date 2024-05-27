@@ -52,6 +52,7 @@ def extract_info_in_capa_name(capa_name, chip_list, process_exp_list, geom_exp_l
     for param in geom_exp_list:
         if re.search(param, rest_parts):
             rest_parts_l = re.split("_"+param+"_", rest_parts) # returns full string if pattern cannot be found
+            #chip_name = rest_parts_l[0]
             rest_parts = ''.join(rest_parts_l)
             geom_param = param
 
@@ -121,6 +122,8 @@ def get_chips_from_experience(experience_string, param_df, get_str = True):
 
 #***** Function: get_experience_from_chip *****
 def get_experience_from_chip(chip_name, param_df):
+    if chip_name not in param_df.index:
+        print("WARNING: chip", chip_name, "not in param_df")
     experience_list = param_df.loc[chip_name].to_list()
     experience_string = '-'.join(map(str,experience_list))
     return experience_string
