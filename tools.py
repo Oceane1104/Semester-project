@@ -182,6 +182,16 @@ PUND_TIMES = [ 25e-6,  50e-6, 150e-6, 175e-6, #1st edge of 1st two pulses
               275e-6, 300e-6, 400e-6, 425e-6, #1st         2nd
               350e-6, 375e-6, 475e-6, 500e-6] #2nd         2nd
 
+def get_pund_times(df):
+    tp  = df['tp'][0]
+    td  = df['td'][0]
+    trf = df['trf'][0]
+    times = [1*td+0*trf+0*tp, 1*td+1*trf+0*tp, 2*td+2*trf+1*tp, 2*td+3*trf+1*tp,
+             1*td+1*trf+1*tp, 1*td+2*trf+1*tp, 2*td+3*trf+2*tp, 2*td+4*trf+2*tp,
+             3*td+4*trf+2*tp, 3*td+5*trf+2*tp, 4*td+6*trf+3*tp, 4*td+7*trf+3*tp,
+             3*td+5*trf+3*tp, 3*td+6*trf+3*tp, 4*td+7*trf+4*tp, 4*td+8*trf+4*tp]
+    return times        
+
 #***** Function: integrate_pund *****
 # Input: dataframe of PUND, negative (false for pos, true for neg), (timestamps of PUND)
 # Output: polarisation without residual participations
@@ -190,8 +200,8 @@ def integrate_pund(data, negative, times = PUND_TIMES):
     end1      = (data['t'] >= times[1+8*negative]).idxmax()
     start2    = (data['t'] >= times[2+8*negative]).idxmax()
     end2      = (data['t'] >= times[3+8*negative]).idxmax()
-    integral1 = simps(data['I'][start1:end1], data['t'][start1:end1])
-    integral2 = simps(data['I'][start2:end2], data['t'][start2:end2])
+    integral1 = simps(np.array(data['I'][start1:end1]), np.array(data['t'][start1:end1]))
+    integral2 = simps(np.array(data['I'][start2:end2]), np.array(data['t'][start2:end2]))
     result = integral1 - integral2
 
     return result
@@ -202,7 +212,7 @@ def integrate_pund(data, negative, times = PUND_TIMES):
 def integrate_pund_lkg(data, negative, times = PUND_TIMES):
     start2    = (data['t'] >= times[2+8*negative]).idxmax()
     end2      = (data['t'] >= times[3+8*negative]).idxmax()
-    integral2 = simps(data['I'][start2:end2], data['t'][start2:end2])
+    integral2 = simps(np.array(data['I'][start2:end2]), np.array(data['t'][start2:end2]))
     result = integral2
 
     return result

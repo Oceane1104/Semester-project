@@ -19,6 +19,7 @@ from tools import butter_lowpass_filter
 from tools import PUND_to_PV
 from tools import integrate_pund
 from tools import integrate_pund_lkg
+from tools import get_pund_times
 
 ### CHANGE IF NECESSARY
 #---graph types to load: see below
@@ -45,7 +46,7 @@ elif (user == "Tom"):
 elif (user == "Thibault"):
     PATH_FOLDER = 'C:\\Users\\Travail\\Desktop\\PDS\\Reports'
     LIST_GRAPH = ["P-V 4V_2#1", "P-V 3V neg_2#1", "PUND 5V_1#1", "PUND 5V neg_1#1", "IV 3V_1#1", "CV 3V_1#1",
-                  "P-V 5V PUND_1#1", "P-V 5V PUND neg_1#1"]
+                  "P-V 5V PUND#1", "P-V 5V PUND neg#1"]
     
 else:
     print("Error: Invalid user input.")
@@ -176,6 +177,19 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
             # load data into df
             wb = xlrd.open_workbook(file_paths[idx], logfile=open(os.devnull, 'w'))
             data_df = pd.read_excel(wb)
+            if 'PUND' in graph_list[idx]:
+                tmp_df = pd.read_excel(file_paths[idx], sheet_name='Sheet3')
+                #print(data_df)
+                tp  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'tp', 'Unnamed: 3'].values[0]
+                td  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'td', 'Unnamed: 3'].values[0]
+                trf = tmp_df.loc[tmp_df['Unnamed: 0'] == 'trf', 'Unnamed: 3'].values[0]
+                tp, td, trf = float(tp), float(td), float(trf)
+                data_df['tp']  = np.nan
+                data_df['trf'] = np.nan
+                data_df['td']  = np.nan
+                data_df.loc[0, 'tp']  = tp
+                data_df.loc[0, 'trf'] = trf
+                data_df.loc[0, 'td']  = td
             data_list.append(data_df)
             sheet_name_list.append(graph_list[idx])
 
@@ -189,11 +203,11 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
                 if 'for' in sheet:
                     precedent = f'_for{sheet.split('for')[1].split('V')[0]}V'
 
-                pundp_index = sheet_name_list.index(sheet)
-                pundp_data = data_list[pundp_index]
-                pv_new_df = PUND_to_PV(pundp_data) 
+                pund_index = sheet_name_list.index(sheet)
+                pund_data = data_list[pund_index]
+                pv_new_df = PUND_to_PV(pund_data, get_pund_times(pund_data)) 
                 data_list.append(pv_new_df)
-                sheet_name_list.append(f'P-V {voltage}V{precedent} PUND{negative}_1#1')
+                sheet_name_list.append(f'P-V {voltage}V{precedent} PUND{negative}#1')
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
@@ -297,10 +311,7 @@ def Polarisation_PUND(name_files, negative, graph_type):
         pol_max = np.nan
         pol_min = np.nan
         data = []
-        if negative == 0:
-            data = load_interim_data(file, graph_type)
-        else:
-            data = load_interim_data(file, graph_type)
+        data = load_interim_data(file, graph_type)
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
@@ -309,8 +320,9 @@ def Polarisation_PUND(name_files, negative, graph_type):
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
-            chargep         = integrate_pund(filtered_data, 0)
-            chargen         = integrate_pund(filtered_data, 1)
+            times = get_pund_times(data)
+            chargep         = integrate_pund(filtered_data, 0, times)
+            chargen         = integrate_pund(filtered_data, 1, times)
 
             pol_max = chargep * 10**(6) / area 
             pol_min = chargen * 10**(6) / area  #µC.cm-²
@@ -387,10 +399,7 @@ def Leakage_PUND(name_files, negative, graph_type):
         lkg_max = np.nan
         lkg_min = np.nan
         data = []
-        if negative == 0:
-            data = load_interim_data(file, graph_type)
-        else:
-            data = load_interim_data(file, graph_type)
+        data = load_interim_data(file, graph_type)
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
@@ -399,8 +408,8 @@ def Leakage_PUND(name_files, negative, graph_type):
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
-            leakagep         = integrate_pund_lkg(filtered_data, 0)
-            leakagen         = integrate_pund_lkg(filtered_data, 1)
+            leakagep         = integrate_pund_lkg(filtered_data, 0, get_pund_times(data))
+            leakagen         = integrate_pund_lkg(filtered_data, 1, get_pund_times(data))
 
             lkg_max = leakagep * 10**(6) / area 
             lkg_min = leakagen * 10**(6) / area  #µA.cm-²
