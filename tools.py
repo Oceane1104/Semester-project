@@ -82,7 +82,7 @@ def extract_pattern_in_string(string, pattern):
 def extract_voltage_in_graphtype(graph_type, mmnt_type):
     voltage = ""
 
-    pattern = mmnt_type + r' (.*?)#'
+    pattern = mmnt_type + r' (.*?)_'
     match = re.search(pattern, graph_type)
     if match:
         voltage = match.group(1)

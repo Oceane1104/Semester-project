@@ -44,6 +44,9 @@ elif (user == "Tom"):
     exit()
 elif (user == "Thibault"):
     PATH_FOLDER = 'C:\\Users\\Travail\\Desktop\\PDS\\Reports'
+    LIST_GRAPH = ["P-V 4V_2#1", "P-V 3V neg_2#1", "PUND 5V_1#1", "PUND 5V neg_1#1", "IV 3V_1#1", "CV 3V_1#1",
+                  "P-V 5V PUND_1#1", "P-V 5V PUND neg_1#1"]
+    
 else:
     print("Error: Invalid user input.")
     exit()
@@ -176,13 +179,21 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
             data_list.append(data_df)
             sheet_name_list.append(graph_list[idx])
 
-        #***** Create the PV 5V plot and load it in the interim file *****
-        if 'PUND 5V_1#1' in sheet_name_list:    
-            pundp_index = sheet_name_list.index('PUND 5V_1#1')
-            pundp_data = data_list[pundp_index]
-            pv_5v_df = PUND_to_PV(pundp_data) 
-            data_list.append(pv_5v_df)
-            sheet_name_list.append('P-V 5V from PUND') ## can we name this sheet differently ? example: P-V 5V from PUND
+        #***** Create the "PV xV_foryV PUND" plot and load it in the interim file *****  #PUND 5V neg_1#1 PUND 7V_for10V#1 PUND 5V_1#1
+        for sheet in sheet_name_list:    
+            if 'PUND' in sheet and not 'P-V' in sheet:
+                voltage = sheet.split(' ')[1].split('V')[0]
+                negative, precedent = '', ''
+                if 'neg' in sheet:
+                    negative = ' neg'
+                if 'for' in sheet:
+                    precedent = f'_for{sheet.split('for')[1].split('V')[0]}V'
+
+                pundp_index = sheet_name_list.index(sheet)
+                pundp_data = data_list[pundp_index]
+                pv_new_df = PUND_to_PV(pundp_data) 
+                data_list.append(pv_new_df)
+                sheet_name_list.append(f'P-V {voltage}V{precedent} PUND{negative}_1#1')
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
@@ -404,7 +415,7 @@ def Leakage_PUND(name_files, negative, graph_type):
 
 def plots_experience(sizes, columns):
     param_names = np.array(process_param_df.columns)
-    if input("Do you want summary plots ? (yes/no) ") == 'no':
+    if not input("Do you want summary plots ? (yes/no) ") == 'yes':
         exit()
     primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
     primary_var = int(primary_var)
@@ -577,37 +588,40 @@ if calculate=="yes":
                 result_df.iloc[i, result_df.columns.get_loc("Placement")] = infos[2]
 
             for graph_type in LIST_GRAPH:
-                if extract_pattern_in_string(graph_type, "P-V") is not None:
+                if 'P-V' in graph_type:
                     voltage = extract_voltage_in_graphtype(graph_type, "P-V")
-                    result_df["Pos Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
+                    result_df["Forward Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df["Neg Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
+                        result_df["Reverse Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
                     #print("Polarisations calculated for plot " + graph_type)
 
-                    result_df["Pos Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,0]
+                    result_df["Forward Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df["Neg Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,1]
+                        result_df["Reverse Coercive field "+voltage] = Coercive(table_experience, graph_type)[:,1]
                     #print("Coercive fields calculated for plot " + graph_type)
                 
-                elif extract_pattern_in_string(graph_type, "IV") is not None:
+                elif 'IV' in graph_type:
                     voltage = extract_voltage_in_graphtype(graph_type, "IV")
-                    result_df["Pos Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,0]
+                    result_df["Forward Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df["Neg Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,1]
+                        result_df["Reverse Leakage "+voltage] = Leakage_current(table_experience, graph_type)[:,1]
                     #print("Leakage currents calculated for plot " + graph_type)
 
-                elif extract_pattern_in_string(graph_type, "PUND") is not None:
-                    result_df["Pos Polarisation PUND"] = Polarisation_PUND(table_experience, 0, graph_type)[:,0]
+                elif 'PUND' in graph_type and not 'P-V' in graph_type:
+                    negative, negative_text = 0, ''
+                    if 'neg' in graph_type:
+                        negative, negative_text = 1, ' neg'
+                    result_df[f"Forward Polarisation PUND{negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,0]/2
                     if calculate_neg == "yes":
-                        result_df["Neg Polarisation PUND"] = Polarisation_PUND(table_experience, 0, graph_type)[:,1]
+                        result_df[f"Reverse Polarisation PUND{negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,1]/2
                     #print("Polarisations calculated for plot " + graph_type)
 
-                    result_df["Pos Leakage PUND"] = Leakage_PUND(table_experience, 0, graph_type)[:,0]
+                    result_df[f"Forward Leakage PUND{negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df["Neg Leakage PUND"] = Leakage_PUND(table_experience, 0, graph_type)[:,1]
+                        result_df[f"Reverse Leakage PUND{negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,1]
                     #print("Leakages calculated for plot " + graph_type)
                     
-                elif extract_pattern_in_string(graph_type, "CV") is not None:
+                elif 'CV' in graph_type:
                     # calculate coercive field
                     print("Calculations based on CV plots not implemented yet.")
 
@@ -635,10 +649,9 @@ if calculate=="yes":
 
     print("\n***********Calculation completed*********")
 
-SIZES = [50, 100, 150]
-OBSERVABLES = ['Pos Coercive field 5V_1', 'Pos Polarisation PUND',  'Pos Leakage PUND']
+SIZES = ['MEA']
+OBSERVABLES = ['Pos Polarisation PUND',  'Pos Leakage PUND']
 plots_experience(SIZES, OBSERVABLES)
 print("Finished generating report plots !")
-
 
 print("\n***********Calculation completed*********")
