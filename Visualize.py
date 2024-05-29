@@ -216,7 +216,7 @@ def plot_PV_special(data_list, graph_type, interim_path, output_path, special_gr
 
         diff_charge = (charge_ma + charge_mi)/2
 
-        label_name = define_label_name(file_name, process_df, geom_df, graph_type)
+        label_name = define_label_name(file_name, process_df, geom_df, graph_type[i])
         plt.plot(data['Vforce'], (data['Charge'] - diff_charge)/area, marker='o', label=f"{label_name}", 
                         color=colors[(i-1)%len(colors)], linewidth=SIZE_LINE)
     if nb_plots == 0:
