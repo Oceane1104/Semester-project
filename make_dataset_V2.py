@@ -611,17 +611,18 @@ if calculate=="yes":
                     #print("Leakage currents calculated for plot " + graph_type)
 
                 elif 'PUND' in graph_type and not 'P-V' in graph_type:
+                    voltage = graph_type.split(' ')[1].split('V')[0]
                     negative, negative_text = 0, ''
                     if 'neg' in graph_type:
                         negative, negative_text = 1, ' neg'
-                    result_df[f"Forward Polarisation PUND{negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,0]/2
+                    result_df[f"Forward Polarisation PUND {voltage}V {negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,0]/2
                     if calculate_neg == "yes":
-                        result_df[f"Reverse Polarisation PUND{negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,1]/2
+                        result_df[f"Reverse Polarisation PUND {voltage}V {negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,1]/2
                     #print("Polarisations calculated for plot " + graph_type)
 
-                    result_df[f"Forward Leakage PUND{negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,0]
+                    result_df[f"Forward Leakage PUND {voltage}V {negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df[f"Reverse Leakage PUND{negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,1]
+                        result_df[f"Reverse Leakage PUND {voltage}V {negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,1]
                     #print("Leakages calculated for plot " + graph_type)
                     
                 elif 'CV' in graph_type:
