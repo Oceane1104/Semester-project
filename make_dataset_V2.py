@@ -422,62 +422,6 @@ def Leakage_PUND(name_files, negative, graph_type):
     leakage = np.array(leakage)
     return leakage
 
-def plots_experience(sizes, columns):
-    param_names = np.array(process_param_df.columns)
-    if not input("Do you want summary plots ? (yes/no) ") == 'yes':
-        exit()
-    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
-    primary_var = int(primary_var)
-    secondary_var = input(f"Choose a secondary parameter (any) between 0 and {len(param_names) -1} (position in {param_names}) ")
-    secondary_var = int(secondary_var)
-    for j, size in enumerate(sizes):
-        folder = PATH_PROCESSED_DATA  
-        results = []
-        for file in os.listdir(folder):
-            if file.endswith('.xlsx'):
-                full_path = os.path.join(folder, file)
-                xl = pd.ExcelFile(full_path)
-                
-                for nom_feuille in xl.sheet_names:
-                    df = pd.read_excel(full_path, sheet_name=nom_feuille)
-                    
-                    last_line_given_size = df[df.iloc[:, 0] == size].tail(1) #only retains one measurement for a size
-                    
-                    col_values = last_line_given_size[columns]
-                    
-                    parametres = file.split('_')[0]
-                    parametres_list = parametres.split('-')
-                    
-                    results.append(parametres_list + list(col_values.values.flatten()))
-        results_np = np.array(results).T
-        secondaries = results_np[secondary_var]
-        primaries = results_np[primary_var].astype(float)
-        for i, column in enumerate(columns):
-            values = results_np[len(parametres_list) + i].astype(float)
-            unique_secondaries = np.unique(secondaries)
-        
-            fig, ax = plt.subplots()
-        
-            for secondary in unique_secondaries:
-                indices = secondaries == secondary
-                ax.plot(primaries[indices], values[indices], '-o', label=f'{param_names[secondary_var]} {secondary}')
-        
-            ax.set_xlabel(f'{param_names[primary_var]}')
-            ax.set_ylabel(f'{column}')
-            ax.set_title(f'{column} - {size}x{size}µm²')
-            ax.legend()
-            
-            filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
-
-            # Chemin complet pour enregistrer le fichier
-            full_path = os.path.join(PATH_OUTPUT, filename)
-
-            # Enregistrer le graphique dans le dossier spécifié
-            plt.savefig(full_path)
-
-            # Fermer la figure après l'enregistrement pour libérer la mémoire
-            plt.close()
-
 def get_chip_name(capa_name, chip_list):
     chip = None
     for chip in chip_list:
@@ -657,10 +601,3 @@ if calculate=="yes":
                 result_df_cleaned.to_excel(writer, index=False)
 
     print("\n***********Calculation completed*********")
-
-SIZES = ['MEA']
-OBSERVABLES = ['Pos Polarisation PUND',  'Pos Leakage PUND']
-plots_experience(SIZES, OBSERVABLES)
-print("Finished generating report plots !")
-
-print("\n***********Calculation completed*********")

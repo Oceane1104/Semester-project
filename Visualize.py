@@ -234,3 +234,59 @@ def plot_PV_special(data_list, graph_type, interim_path, output_path, special_gr
     if SHOW_PLOTS:
         plt.show()
     return
+
+def plots_experience(sizes, columns, process_param_df, path_processed_data, path_output):
+    param_names = np.array(process_param_df.columns)
+    if not input("Do you want summary plots ? (yes/no) ") == 'yes':
+        exit()
+    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
+    primary_var = int(primary_var)
+    secondary_var = input(f"Choose a secondary parameter (any) between 0 and {len(param_names) -1} (position in {param_names}) ")
+    secondary_var = int(secondary_var)
+    for j, size in enumerate(sizes):
+        folder = path_processed_data  
+        results = []
+        for file in os.listdir(folder):
+            if file.endswith('.xlsx'):
+                full_path = os.path.join(folder, file)
+                xl = pd.ExcelFile(full_path)
+                
+                for nom_feuille in xl.sheet_names:
+                    df = pd.read_excel(full_path, sheet_name=nom_feuille)
+                    
+                    last_line_given_size = df[df.iloc[:, 0] == size].tail(1) #only retains one measurement for a size
+                    
+                    col_values = last_line_given_size[columns]
+                    
+                    parametres = file.split('_')[0]
+                    parametres_list = parametres.split('-')
+                    
+                    results.append(parametres_list + list(col_values.values.flatten()))
+        results_np = np.array(results).T
+        secondaries = results_np[secondary_var]
+        primaries = results_np[primary_var].astype(float)
+        for column in columns:
+            values = results_np[len(parametres_list) + i].astype(float)
+            unique_secondaries = np.unique(secondaries)
+        
+            fig, ax = plt.subplots()
+        
+            for secondary in unique_secondaries:
+                indices = secondaries == secondary
+                ax.plot(primaries[indices], values[indices], '-o', label=f'{param_names[secondary_var]} {secondary}')
+        
+            ax.set_xlabel(f'{param_names[primary_var]}')
+            ax.set_ylabel(f'{column}')
+            ax.set_title(f'{column} - {size}x{size}µm²')
+            ax.legend()
+            
+            filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
+
+            # Chemin complet pour enregistrer le fichier
+            full_path = os.path.join(path_output, filename)
+
+            # Enregistrer le graphique dans le dossier spécifié
+            plt.savefig(full_path)
+
+            # Fermer la figure après l'enregistrement pour libérer la mémoire
+            plt.close()

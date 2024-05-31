@@ -16,7 +16,7 @@ from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
 from tools import load_geom_param_df
 from tools import get_file_names
-from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special
+from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plots_experience
 
 #from folder1.file1 import ma_fonction$
 
@@ -119,6 +119,13 @@ else:
     print("\n***** Plotting of graph", SPECIAL_PLOT)
     if extract_pattern_in_string(SPECIAL_PLOT[0], "P-V") is not None:
         plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, SPECIAL_PLOT, process_df, geom_df)
+
+
+SIZES = ['MEA', 50, 100]
+OBSERVABLES = ['Forward Polarisation PUND', 'Forward Leakage PUND']
+process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
+plots_experience(SIZES, OBSERVABLES, process_param_df, PATH_PROCESSED_DATA, PATH_OUTPUT)
+print("Finished generating report plots !")
 
 ### Plot results
 # nom du fichier
