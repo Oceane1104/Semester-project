@@ -6,6 +6,7 @@ import time
 import xlrd
 import re
 import matplotlib.pyplot as plt
+from scipy.integrate import simps
 # import functions from other python files
 from tools import extract_pattern_in_string
 from tools import get_chips_from_experience
@@ -25,7 +26,7 @@ from tools import get_pund_times
 #---graph types to load: see below
 
 #---chips to load or calculate
-selected_chips = "" #["ml4apr01"]
+selected_chips = [ "ml4may01"]
 #selected_chips = "" # if you want to load all chips in the process parameter file
 
 ## PATHS
@@ -37,9 +38,17 @@ if (user == "Nathalie"):
                   "P-V 10V_1#1","PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
 elif (user == "Océane"):
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
-    LIST_GRAPH = ["P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", 
-                  "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", 
-                  "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1" ]
+    LIST_GRAPH = ["P-V 5V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 10V_1#1", "P-V 12V_1#1", "P-V 14V_1#1", "P-V 15V_1#1", 
+                  "P-V 17V_1#1", "P-V 18V_1#1","P-V 19V_1#1", "P-V 20V_1#1", "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", 
+                  "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1", "P-V 29V_1#1", "P-V 30V_1#1","P-V 32V_1#1"]
+    #"P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", 
+                #   "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", 
+                #   "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1" 
+                # , "PUND 5V_for5V#1", 
+                #   "PUND 7V_for7V#1", "PUND 8V_for8V#1", "PUND 10V_for10V#1", "PUND 12V_for12V#1", "PUND 14V_for14V#1", "PUND 15V_for15V#1",
+                #   "PUND 17V_for17V#1", "PUND 18V_for18V#1", "PUND 19V_for19V#1", "PUND 20V_for20V#1", "PUND 21V_for21V#1", 
+                #   "PUND 22V_for22V#1", "PUND 23V_for23V#1", "PUND 24V_for24V#1", "PUND 25V_for25V#1", "PUND 28V_for28V#1",
+                #   "PUND 29V_for29V#1", "PUND 30V_for30V#1", "PUND 32V_for32V#1"
 elif (user == "Tom"):
     print("Error:Need to create your path")
     exit()
@@ -201,7 +210,7 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
                 if 'neg' in sheet:
                     negative = ' neg'
                 if 'for' in sheet:
-                    precedent = f'_for{sheet.split('for')[1].split('V')[0]}V'
+                    precedent = f"_for{sheet.split('for')[1].split('V')[0]}V"
 
                 pund_index = sheet_name_list.index(sheet)
                 pund_data = data_list[pund_index]
@@ -300,6 +309,42 @@ def Polarisation(name_files, graph_type):
         #penser à normaliser les unités
     polarisations = np.array(polarisations)
     return polarisations
+
+def Energy(name_files, graph_type, thickness):
+    energy = []
+    for file in name_files:
+        energy_total = np.nan
+        energy_density = np.nan
+        energy_lost = np.nan
+
+        data = load_interim_data(file, graph_type)
+
+        if len(data): # if data is not empty
+            geometry = file.split('_')[1]
+            size = geometry.split('-')[0]
+            area = (int(size)*10**(-4))**2
+            Volume = area * thickness
+
+            charge_ma = max(data['Charge'])
+            charge_mi = min(data['Charge'])
+            diff_charge = (charge_ma + charge_mi)/2
+
+            Vforce = data['Vforce']
+            Polarisation = (data['Charge'] - diff_charge)*10**6 / Volume
+            
+            # Find the index of the maximum voltage
+            max_voltage_idx = np.argmax(Vforce)
+
+            # Calculate energy densities
+            n = len(Vforce)
+            energy_total = simps(Vforce[:max_voltage_idx], Polarisation[:max_voltage_idx])
+            energy_density = -simps(Vforce[max_voltage_idx:n//2], Polarisation[max_voltage_idx:n//2])
+            energy_lost = energy_total - energy_density
+
+        energy.append([energy_density, energy_total, energy_lost])
+        #penser à normaliser les unités
+    energy = np.array(energy)
+    return energy
 
 
 #***** Function: Polarisation *****
@@ -543,7 +588,12 @@ if calculate=="yes":
             for graph_type in LIST_GRAPH:
                 if 'P-V' in graph_type:
                     voltage = extract_voltage_in_graphtype(graph_type, "P-V")
+                    De, Fe, layer = exp.split("-")[:2]
+                    thickness = (int(De) + int(Fe)) * int(layer)
                     result_df["Forward Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
+                    result_df["Energy density "+voltage] = Energy(table_experience, graph_type)[:,0]
+                    result_df["Energy total "+voltage] = Energy(table_experience, graph_type)[:,1]
+                    result_df["Energy lost "+voltage] = Energy(table_experience, graph_type)[:,2]
                     if calculate_neg == "yes":
                         result_df["Reverse Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
                     #print("Polarisations calculated for plot " + graph_type)
