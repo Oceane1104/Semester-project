@@ -394,7 +394,36 @@ def extract_energy_data(process_df, data_list, result_folder):
                     })
     return pd.DataFrame(results)
 
+def plot_energy_data(PATH, data_list, result_folder):
+    process_df = pd.read_excel(PATH)
+    results_df = extract_energy_data(process_df, data_list, result_folder)
     
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    ax2 = ax1.twinx()
+    
+    chips = results_df['Chip'].unique()
+    colors = plt.cm.viridis(np.linspace(0, 1, len(chips)))
+    
+    for color, chip in zip(colors, chips):
+        chip_data = results_df[results_df['Chip'] == chip]
+        ax1.plot(chip_data['Voltage'], chip_data['Energy_density'], 'o-', color=color, label=f'{chip} Energy Density')
+        ax2.plot(chip_data['Voltage'], chip_data['Efficiency'], '^-', color=color, label=f'{chip} Efficiency')
+    
+    ax1.set_xlabel('Voltage [V]')
+    ax1.set_ylabel('Energy Density [µJ/cm³]')
+    ax2.set_ylabel('Efficiency [%]')
+    
+    ax1.set_title('Energy Density and Efficiency vs Voltage')
+    
+    # Fusionner les légendes des deux axes
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+    
+    plt.grid(True)
+    plt.savefig('energy_density_efficiency_plot.png')
+    plt.show()
+
 def plots_experience(sizes, columns, process_param_df, path_processed_data, path_output):
     param_names = np.array(process_param_df.columns)
     if not input("Do you want summary plots ? (yes/no) ") == 'yes':
