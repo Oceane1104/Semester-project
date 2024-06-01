@@ -413,8 +413,7 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                 
                 for sheetname in xl.sheet_names:
                     df = pd.read_excel(full_path, sheet_name=sheetname)
-                    
-                    last_line_given_size = df[df.iloc[:, 0] == size].tail(1) #only retains one measurement for a size
+                    last_line_given_size = df[df.iloc[:, 1] == size].tail(1) #only retains one measurement for a size
                     
                     col_values = last_line_given_size[columns]
                     
@@ -423,12 +422,13 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     
                     temp_param = parametres_list
                     temp_param.extend(list(col_values.values.flatten()))
+                    print(f"temp_param {temp_param} for file {file} and size {size}")
                     results.append(temp_param)
         results_np = np.array(results).T
+        print(f"results_np {results_np}")
         secondaries = results_np[secondary_var]
         primaries = results_np[primary_var].astype(float)
         for i, column in enumerate(columns):
-            print(parametres_list)
             indx = len(parametres_list)-2+i
             values = results_np[indx].astype(float)
             unique_secondaries = np.unique(secondaries)
@@ -436,7 +436,8 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
             fig, ax = plt.subplots()
         
             for k, secondary in enumerate(unique_secondaries):
-                index = np.where(secondaries == secondary)[0]
+                index_flush, index = np.where(secondaries == secondary)
+                print(f'Index : {index}, primaries : {primaries}, values : {values}')
                 ax.plot(primaries[index], values[index], '-o', label=f'{param_names[secondary_var]} {secondary}')
         
             ax.set_xlabel(f'{param_names[primary_var]}')
