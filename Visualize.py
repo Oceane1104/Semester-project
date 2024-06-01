@@ -460,9 +460,9 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
     param_names = np.array(process_param_df.columns)
     if not input("Do you want summary plots ? (yes/no) ") == 'yes':
         exit()
-    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
+    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) :")
     primary_var = int(primary_var)
-    secondary_var = input(f"Choose one or more secondary parameters (any) between 0 and {len(param_names) - 1} (position in {param_names}) - for example 0 2 3 : ")
+    secondary_var = input(f"Choose 999 for none, or one or more secondary parameters between 0 and {len(param_names) - 1} (position in {param_names}) separated by spaces :")
     secondary_var = np.array(secondary_var.split(" ")).astype(int)
     for j, size in enumerate(sizes):
         folder = path_processed_data  
@@ -486,27 +486,41 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     results.append(temp_param)
         results_np = np.array(results).T
         secondaries = np.array([])
-        for res in range(len(results_np[0])):
-            secondary_temp = np.array([])
-            for par in range(len(secondary_var)):
-                secondary_temp = np.append(secondary_temp, results_np[secondary_var[par]][res])
-            if len(secondaries) == 0:
-                secondaries = [secondary_temp]
-            else:
-                secondaries = np.vstack((secondaries, secondary_temp))
+        if secondary_var[0] != 999:
+            for res in range(len(results_np[0])):
+                secondary_temp = np.array([])
+                for par in range(len(secondary_var)):
+                    secondary_temp = np.append(secondary_temp, results_np[secondary_var[par]][res])
+                if len(secondaries) == 0:
+                    secondaries = [secondary_temp]
+                else:
+                    secondaries = np.vstack((secondaries, secondary_temp))
         primaries = results_np[primary_var].astype(float)
         for i, column in enumerate(columns):
             indx = len(parametres_list)-1+i-1
             values = results_np[indx].astype(float)
             unique_secondaries = np.unique(secondaries, axis=0)
-            print(f'secondary_par {secondary_var} secondaries : {secondaries}, unique_secondaries: {unique_secondaries}')
         
             fig, ax = plt.subplots()
-        
-            for k, secondary in enumerate(unique_secondaries):
-                index = np.where(np.all(secondaries == secondary, axis=1))
-                print(f'Index : {index}, primaries : {primaries}, values : {values}')
-                ax.plot(primaries[index], values[index], '-o', label=f'{param_names[secondary_var]} {secondary}')
+            if secondary_var[0] != 999:
+                for k, secondary in enumerate(unique_secondaries):
+                    index = np.where(np.all(secondaries == secondary, axis=1))
+                    selected_primaries = primaries[index]
+                    selected_values = values[index]
+                    unique_primaries = np.unique(selected_primaries)
+                    unique_values = []
+                    for l, primary in enumerate(unique_primaries):
+                        index_p = np.where(selected_primaries == primary)
+                        unique_values = np.append(unique_values, np.mean(selected_values[index_p]))
+                    ax.plot(unique_primaries, unique_values, '-o', label=f'{param_names[secondary_var]} {secondary}')
+            else:
+                unique_primaries = np.unique(primaries)
+                unique_values = []
+                for l, primary in enumerate(unique_primaries):
+                    index_p = np.where(primaries == primary)
+                    unique_values = np.append(unique_values, np.mean(values[index_p]))
+                ax.plot(unique_primaries, unique_values, '-o')
+
         
             ax.set_xlabel(f'{param_names[primary_var]}')
             ax.set_ylabel(f'{column}')
@@ -516,10 +530,20 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                 ax.set_title(f'{column} - {size}x{size}µm²')
             ax.legend()
             
-            if size == 'MEA':
-                filename = f'Report - {column} v. {param_names[primary_var]} comparison.png'
+            if secondary_var[0] != 999:
+                secondary_name = "for diff."
+                for j in range(len(param_names[secondary_var])):
+                    secondary_name = secondary_name + ' ' + param_names[secondary_var][j]
+                if size == 'MEA':
+                    filename = f'Report - {column} v. {param_names[primary_var]} comparison {secondary_name}.png'
+                else:
+                    filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison {secondary_name}.png'
             else:
-                filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
+                if size == 'MEA':
+                    filename = f'Report - {column} v. {param_names[primary_var]} comparison.png'
+                else:
+                    filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
+
 
             # Chemin complet pour enregistrer le fichier
             full_path = os.path.join(path_output, filename)
