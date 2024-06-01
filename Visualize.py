@@ -401,8 +401,8 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
         exit()
     primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
     primary_var = int(primary_var)
-    secondary_var = input(f"Choose a secondary parameter (any) between 0 and {len(param_names) -1} (position in {param_names}) ")
-    secondary_var = int(secondary_var)
+    secondary_var = input(f"Choose one or more secondary parameters (any) between 0 and {len(param_names) - 1} (position in {param_names}) for example 0 2 3")
+    secondary_var = np.array(secondary_var.split(" ")).astype(int)
     for j, size in enumerate(sizes):
         folder = path_processed_data  
         results = []
@@ -411,8 +411,8 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                 full_path = os.path.join(folder, file)
                 xl = pd.ExcelFile(full_path)
                 
-                for nom_feuille in xl.sheet_names:
-                    df = pd.read_excel(full_path, sheet_name=nom_feuille)
+                for sheetname in xl.sheet_names:
+                    df = pd.read_excel(full_path, sheet_name=sheetname)
                     
                     last_line_given_size = df[df.iloc[:, 0] == size].tail(1) #only retains one measurement for a size
                     
@@ -421,19 +421,23 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     parametres = file.split('_')[0]
                     parametres_list = parametres.split('-')
                     
-                    results.append(parametres_list + list(col_values.values.flatten()))
+                    temp_param = parametres_list
+                    temp_param.extend(list(col_values.values.flatten()))
+                    results.append(temp_param)
         results_np = np.array(results).T
         secondaries = results_np[secondary_var]
         primaries = results_np[primary_var].astype(float)
-        for column in columns:
-            values = results_np[len(parametres_list) + i].astype(float)
+        for i, column in enumerate(columns):
+            indx = len(parametres_list)-1+i
+            values = results_np[indx].astype(float)
+            print(values)
             unique_secondaries = np.unique(secondaries)
         
             fig, ax = plt.subplots()
         
-            for secondary in unique_secondaries:
-                indices = secondaries == secondary
-                ax.plot(primaries[indices], values[indices], '-o', label=f'{param_names[secondary_var]} {secondary}')
+            for k, secondary in enumerate(unique_secondaries):
+                index = np.where(secondaries == secondary)[0]
+                ax.plot(primaries[index], values[index], '-o', label=f'{param_names[secondary_var]} {secondary}')
         
             ax.set_xlabel(f'{param_names[primary_var]}')
             ax.set_ylabel(f'{column}')
