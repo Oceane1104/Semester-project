@@ -31,7 +31,7 @@ from plot_settings import SELECTED_PLACEMENTS, PLOT_RESULT_MEAN, ELECTRIC_FIELD,
 from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT, FOLDER, INTEGRAL, PLOT_RESULT_ENERGY, CHIP_RESULT_ENERGY
 
 ## PATHS
-user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
+user = 'Thibault' #input("Who are you? Nathalie, Océane, Tom, Thibault ")
 
 if (user == "Nathalie"):      
     #Nathalie
@@ -118,8 +118,8 @@ elif(not(PLOT_RESULT_ENERGY) and SPECIAL and not(PLOT_RESULT_MEAN)):
         # Étendre la liste de tous les capaciteurs sélectionnés
         capas_to_plot.extend(capas_to_plot_inter)
 
-    print("selected capacitors:",capas_to_plot)
-    print("selected graph:",total_graph)
+    print("selected capacitors:", capas_to_plot)
+    print("selected graph:", total_graph)
 
     ### Plot graphes
     print("\n***** Plotting of graph", SPECIAL_PLOT)
