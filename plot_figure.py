@@ -118,8 +118,8 @@ elif(not(PLOT_RESULT_ENERGY) and SPECIAL):
         # Étendre la liste de tous les capaciteurs sélectionnés
         capas_to_plot.extend(capas_to_plot_inter)
 
-    print("selected capacitors:",capas_to_plot)
-    print("selected graph:",total_graph)
+    print("selected capacitors:", capas_to_plot)
+    print("selected graph:", total_graph)
 
     ### Plot graphes
     print("\n***** Plotting of graph", SPECIAL_PLOT)

@@ -401,7 +401,7 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
         exit()
     primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
     primary_var = int(primary_var)
-    secondary_var = input(f"Choose one or more secondary parameters (any) between 0 and {len(param_names) - 1} (position in {param_names}) for example 0 2 3")
+    secondary_var = input(f"Choose one or more secondary parameters (any) between 0 and {len(param_names) - 1} (position in {param_names}) - for example 0 2 3 : ")
     secondary_var = np.array(secondary_var.split(" ")).astype(int)
     for j, size in enumerate(sizes):
         folder = path_processed_data  
@@ -428,9 +428,9 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
         secondaries = results_np[secondary_var]
         primaries = results_np[primary_var].astype(float)
         for i, column in enumerate(columns):
-            indx = len(parametres_list)-1+i
+            print(parametres_list)
+            indx = len(parametres_list)-2+i
             values = results_np[indx].astype(float)
-            print(values)
             unique_secondaries = np.unique(secondaries)
         
             fig, ax = plt.subplots()
