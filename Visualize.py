@@ -483,30 +483,43 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     
                     temp_param = parametres_list
                     temp_param.extend(list(col_values.values.flatten()))
-                    print(f"temp_param {temp_param} for file {file} and size {size}")
                     results.append(temp_param)
         results_np = np.array(results).T
-        print(f"results_np {results_np}")
-        secondaries = results_np[secondary_var]
+        secondaries = np.array([])
+        for res in range(len(results_np[0])):
+            secondary_temp = np.array([])
+            for par in range(len(secondary_var)):
+                secondary_temp = np.append(secondary_temp, results_np[secondary_var[par]][res])
+            if len(secondaries) == 0:
+                secondaries = [secondary_temp]
+            else:
+                secondaries = np.vstack((secondaries, secondary_temp))
         primaries = results_np[primary_var].astype(float)
         for i, column in enumerate(columns):
-            indx = len(parametres_list)-2+i
+            indx = len(parametres_list)-1+i-1
             values = results_np[indx].astype(float)
-            unique_secondaries = np.unique(secondaries)
+            unique_secondaries = np.unique(secondaries, axis=0)
+            print(f'secondary_par {secondary_var} secondaries : {secondaries}, unique_secondaries: {unique_secondaries}')
         
             fig, ax = plt.subplots()
         
             for k, secondary in enumerate(unique_secondaries):
-                index_flush, index = np.where(secondaries == secondary)
+                index = np.where(np.all(secondaries == secondary, axis=1))
                 print(f'Index : {index}, primaries : {primaries}, values : {values}')
                 ax.plot(primaries[index], values[index], '-o', label=f'{param_names[secondary_var]} {secondary}')
         
             ax.set_xlabel(f'{param_names[primary_var]}')
             ax.set_ylabel(f'{column}')
-            ax.set_title(f'{column} - {size}x{size}µm²')
+            if size == 'MEA':
+                ax.set_title(f'{column} - Mean value')
+            else:
+                ax.set_title(f'{column} - {size}x{size}µm²')
             ax.legend()
             
-            filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
+            if size == 'MEA':
+                filename = f'Report - {column} v. {param_names[primary_var]} comparison.png'
+            else:
+                filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
 
             # Chemin complet pour enregistrer le fichier
             full_path = os.path.join(path_output, filename)

@@ -31,7 +31,7 @@ from plot_settings import SELECTED_PLACEMENTS, PLOT_RESULT_MEAN, ELECTRIC_FIELD,
 from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT, FOLDER, INTEGRAL, PLOT_RESULT_ENERGY, CHIP_RESULT_ENERGY
 
 ## PATHS
-user = 'Thibault' #input("Who are you? Nathalie, Océane, Tom, Thibault ")
+user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
 
 if (user == "Nathalie"):      
     #Nathalie
@@ -127,15 +127,15 @@ elif(not(PLOT_RESULT_ENERGY) and SPECIAL and not(PLOT_RESULT_MEAN)):
         plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, SPECIAL_PLOT, process_df, geom_df)
 
 
-<<<<<<< HEAD
+
 SIZES = ['MEA', '50', '100']
 OBSERVABLES = ['Forward Polarisation PUND', 'Forward Leakage PUND']
 process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
 plots_experience(SIZES, OBSERVABLES, process_param_df, PATH_PROCESSED_DATA, PATH_OUTPUT)
 print("Finished generating report plots !")
-=======
 
->>>>>>> origin/main
+
+
 
 ### Plot results
 # nom du fichier
