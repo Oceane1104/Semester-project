@@ -16,7 +16,7 @@ from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
 from tools import load_geom_param_df
 from tools import get_file_names
-from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plots_experience, plot_PV_and_calculate_energy, plot_energy_data
+from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plots_experience, plot_PV_and_calculate_energy, plot_energy_data, plot_energy_data_E_Field
 
 #from folder1.file1 import ma_fonction$
 
@@ -27,7 +27,7 @@ from plot_settings import GRAPH_VOLTAGES
 from plot_settings import SELECTED_CHIPS
 from plot_settings import SELECTED_EXPERIENCES 
 from plot_settings import SELECTED_GEOMETRIES
-from plot_settings import SELECTED_PLACEMENTS, PLOT_RESULT_MEAN
+from plot_settings import SELECTED_PLACEMENTS, PLOT_RESULT_MEAN, ELECTRIC_FIELD, THICKNESS
 from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT, FOLDER, INTEGRAL, PLOT_RESULT_ENERGY, CHIP_RESULT_ENERGY
 
 ## PATHS
@@ -135,11 +135,14 @@ elif(not(PLOT_RESULT_ENERGY) and SPECIAL and not(PLOT_RESULT_MEAN)):
 # Trouvez l'index de la ligne correspondant à la chip spécifique dans la première colonne
 
 if(PLOT_RESULT_ENERGY):
-    plot_energy_data(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA)
+    if(ELECTRIC_FIELD):
+        plot_energy_data_E_Field(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA, PATH_OUTPUT, THICKNESS)
+    else:
+        plot_energy_data(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA, PATH_OUTPUT)
 
 if(PLOT_RESULT_MEAN):
     SIZES = ['MEA', 50, 100]
-    OBSERVABLES = ['Forward Polarisation PUND', 'Forward Leakage PUND']
+    OBSERVABLES = ['Forward Polarisation PUND 5V', 'Forward Leakage PUND 5V']
     process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
     plots_experience(SIZES, OBSERVABLES, process_param_df, PATH_PROCESSED_DATA, PATH_OUTPUT)
     print("Finished generating report plots !")

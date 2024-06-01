@@ -169,13 +169,17 @@ def get_file_names(path,chip_names=[]):
 # Output: less noisy measurement
 # Note: only change cutoff frequency in case of error, and do so consistently to keep comparisons relevant
 def butter_lowpass_filter(data, data_time, cutoff=2000000, order=5):
-    fs = 1 / (data_time[1] - data_time[0])
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    padlen = min(len(data) - 1, 3 * max(len(a), len(b)))  
-    filtered_data = filtfilt(b, a, data, padlen=padlen)  
-    return filtered_data
+    if(len(data_time) > 1):
+        fs = 1 / (data_time[1] - data_time[0])
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        if(fs > 0.1 and normal_cutoff > 0.1):
+            b, a = butter(order, normal_cutoff, btype='low', analog=False)
+            padlen = min(len(data) - 1, 3 * max(len(a), len(b)))  
+            filtered_data = filtfilt(b, a, data, padlen=padlen)  
+            return filtered_data
+    else:
+        return data
 
 PUND_TIMES = [ 25e-6,  50e-6, 150e-6, 175e-6, #1st edge of 1st two pulses
               100e-6, 125e-6, 225e-6, 250e-6, #2nd         1st
@@ -240,8 +244,18 @@ def PUND_to_PV(data, times=PUND_TIMES):
             delay = data['t'][start1] - t_array[len(t_array) - 1]
         t_array.extend(data['t'][start1:start1+min_length] - delay)
         
-    Q_array = cumtrapz(I_array, t_array, initial=0)
-    
-    pv_plot['Charge'], pv_plot['Vforce'], pv_plot['t'] = Q_array, V_array, t_array
-    return pv_plot
+    # print(f"Longueur de {len(I_array)} vs {len(t_array)}")
 
+    if (len(I_array) != 0 and len(t_array) != 0 and len(Q_array) != 0):
+        Q_array = cumtrapz(I_array, t_array)
+
+        # len_ar = min(len(Q_array), len(V_array), len(t_array))
+        # Q_array = Q_array[:len_ar]
+        # V_array = V_array[:len_ar]
+        # t_array = t_array[:len_ar]
+        
+        pv_plot['Charge'], pv_plot['Vforce'], pv_plot['t'] = Q_array, V_array, t_array
+        return pv_plot
+    else:
+        pv_plot_dummy = pd.DataFrame({'Charge': [0], 'Vforce': [0], 't': [0]})
+        return pv_plot_dummy
