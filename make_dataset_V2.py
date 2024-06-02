@@ -519,7 +519,7 @@ geom_param_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
 chip_names = process_param_df.index
 #chip_names = selected_chips
 list_graph_str = ' / '.join(LIST_GRAPH)
-load = 'yes' #input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
+load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
 if load=="yes":
     ### PRE-PROCESS FILES AND STORED INTO INTNERIM FOLDER
     print("\n***********Data loading started*********")
@@ -573,11 +573,11 @@ for process in exp_list_process:
 #    print("\nCapa: ",capa, "\nInfos: ", infos)
           
 ### CALCULATIONS + STORE RESULT
-calculate = 'yes' #input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
+calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
 if calculate=="yes":
 
     print("\n***********Calculation started*********")
-    calculate_neg = 'yes' #input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
+    calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
 
     for exp in exp_list_process: 
         print("\n***Calculations for experience", exp,"***")
