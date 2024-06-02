@@ -509,10 +509,13 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     selected_values = values[index]
                     unique_primaries = np.unique(selected_primaries)
                     unique_values = []
+                    unique_stddev = []
                     for l, primary in enumerate(unique_primaries):
                         index_p = np.where(selected_primaries == primary)
                         unique_values = np.append(unique_values, np.mean(selected_values[index_p]))
+                        unique_stddev = np.append(unique_stddev, np.std(selected_values[index_p]))
                     ax.plot(unique_primaries, unique_values, '-o', label=f'{param_names[secondary_var]} {secondary}')
+                    ax.errorbar(unique_primaries, unique_values, yerr=unique_stddev, fmt='o', capsize=5)
             else:
                 unique_primaries = np.unique(primaries)
                 unique_values = []

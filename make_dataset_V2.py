@@ -386,7 +386,7 @@ def Polarisation_PUND(name_files, negative, graph_type):
         data = []
         data = load_interim_data(file, graph_type)
 
-        if (len(data) and data['I'][0] > 10**(-10) and data['I'][1] > 10**(-10)): # if data is not empty
+        if (len(data) > 1 and abs(data['I'][0]) > 10**(-12) and abs(data['I'][1]) > 10**(-12)): # if data is not empty
             geometry = file.split('_')[1]
             size = geometry.split('-')[0]
             area = (int(size)*10**(-4))**2
@@ -400,6 +400,7 @@ def Polarisation_PUND(name_files, negative, graph_type):
             pol_max = chargep * 10**(6) / area 
             pol_min = chargen * 10**(6) / area  #µC.cm-²
         else:
+            print(f"ERROR: could not derive polarisation from {graph_type}")
             pol_max = np.nan
             pol_min = np.nan
         
@@ -477,7 +478,7 @@ def Leakage_PUND(name_files, negative, graph_type):
         data = []
         data = load_interim_data(file, graph_type)
 
-        if (len(data) and data['I'][0] > 10**(-10) and data['I'][1] > 10**(-10)): # if data is not empty
+        if (len(data) > 1 and abs(data['I'][0]) > 10**(-10) and abs(data['I'][1]) > 10**(-10)): # if data is not empty
             geometry = file.split('_')[1]
             size = geometry.split('-')[0]
             area = (int(size)*10**(-4))**2
@@ -490,6 +491,7 @@ def Leakage_PUND(name_files, negative, graph_type):
             lkg_max = leakagep * 10**(6) / area 
             lkg_min = leakagen * 10**(6) / area  #µA.cm-²
         else:
+            print(f"ERROR: could not derive leakage from {graph_type}")
             lkg_max = np.nan
             lgk_min = np.nan
         
@@ -517,7 +519,7 @@ geom_param_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
 chip_names = process_param_df.index
 #chip_names = selected_chips
 list_graph_str = ' / '.join(LIST_GRAPH)
-load = input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
+load = 'yes' #input("\nLoad graphes: "+ list_graph_str+ " of new chips to interim? yes/no: ")
 if load=="yes":
     ### PRE-PROCESS FILES AND STORED INTO INTNERIM FOLDER
     print("\n***********Data loading started*********")
@@ -571,11 +573,11 @@ for process in exp_list_process:
 #    print("\nCapa: ",capa, "\nInfos: ", infos)
           
 ### CALCULATIONS + STORE RESULT
-calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
+calculate = 'yes' #input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
 if calculate=="yes":
 
     print("\n***********Calculation started*********")
-    calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
+    calculate_neg = 'yes' #input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
 
     for exp in exp_list_process: 
         print("\n***Calculations for experience", exp,"***")
@@ -620,7 +622,6 @@ if calculate=="yes":
                 result_df.iloc[i, result_df.columns.get_loc("Placement")] = infos[2]
 
             for graph_type in LIST_GRAPH:
-                print(f"Le graph est : {graph_type}")
                 if 'P-V' in graph_type:
                     voltage = extract_voltage_in_graphtype(graph_type, "P-V")
                     #Thick_infos = exp.split("-")
