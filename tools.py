@@ -256,3 +256,11 @@ def PUND_to_PV(data, name, times=PUND_TIMES):
         print(f"WARNING : Error in extraction of plot PV from PUND {name}")
         pv_plot_dummy = pd.DataFrame({'Charge': [0], 'Vforce': [0], 't': [0]})
         return pv_plot_dummy
+
+def to_float(string):
+    try:
+        # Tentative de conversion en float
+        return string.astype(float)
+    except ValueError:
+        # Si la conversion échoue, renvoie la valeur originale
+        return string

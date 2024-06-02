@@ -1,6 +1,6 @@
 # Plot settings
 TITLE = "TEST"
-FOLDER = "TEST"
+FOLDER = "Report plots"
 #Evolution of DE1FE5x8 with 450°C from 5V to 30V for 200µm capacitor
 
 TITLE_ADD_SIZE = True

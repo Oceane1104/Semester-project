@@ -5,7 +5,7 @@ import re
 import numpy as np
 from scipy.integrate import simps
 
-from tools import butter_lowpass_filter, load_process_param_df, load_geom_param_df
+from tools import butter_lowpass_filter, load_process_param_df, load_geom_param_df, to_float
 
 from plot_settings import TITLE, LABEL, SIZE_TITLE, SIZE_AXIS, SIZE_LABELS, SIZE_GRADUATION, SIZE_PLOTS, SIZE_LINE, LABEL_EXP, LABEL_PLAC, LABEL_GEO, BOX_PLACE, LOC_PLACE, SHOW_PLOTS, NAME, LABEL_GRAPH, LABEL_NB_EXP
 from plot_settings import TITLE_ADD_SIZE, TITLE_ADD_GRAPH
@@ -474,8 +474,9 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                 
                 for sheetname in xl.sheet_names:
                     df = pd.read_excel(full_path, sheet_name=sheetname)
+                    print(df)
                     last_line_given_size = df[df.iloc[:, 1] == size].tail(1) #only retains one measurement for a size
-                    
+                    print(last_line_given_size)                   
                     col_values = last_line_given_size[columns]
                     
                     parametres = file.split('_')[0]
@@ -484,6 +485,7 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     temp_param = parametres_list
                     temp_param.extend(list(col_values.values.flatten()))
                     results.append(temp_param)
+        print(results)
         results_np = np.array(results).T
         secondaries = np.array([])
         if secondary_var[0] != 999:
@@ -495,7 +497,7 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     secondaries = [secondary_temp]
                 else:
                     secondaries = np.vstack((secondaries, secondary_temp))
-        primaries = results_np[primary_var].astype(float)
+        primaries = to_float(results_np[primary_var])
         for i, column in enumerate(columns):
             indx = len(parametres_list)-1+i-1
             values = results_np[indx].astype(float)
@@ -514,8 +516,7 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                         index_p = np.where(selected_primaries == primary)
                         unique_values = np.append(unique_values, np.mean(selected_values[index_p]))
                         unique_stddev = np.append(unique_stddev, np.std(selected_values[index_p]))
-                    ax.plot(unique_primaries, unique_values, '-o', label=f'{param_names[secondary_var]} {secondary}')
-                    ax.errorbar(unique_primaries, unique_values, yerr=unique_stddev, fmt='o', capsize=5)
+                    ax.errorbar(unique_primaries, unique_values, yerr=unique_stddev, fmt='-o', capsize=5, label=f'{secondary}')
             else:
                 unique_primaries = np.unique(primaries)
                 unique_values = []
@@ -528,9 +529,9 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
             ax.set_xlabel(f'{param_names[primary_var]}')
             ax.set_ylabel(f'{column}')
             if size == 'MEA':
-                ax.set_title(f'{column} - Mean value')
+                ax.set_title(f'{column} - Mean value \nParameters : {param_names[secondary_var]}')
             else:
-                ax.set_title(f'{column} - {size}x{size}µm²')
+                ax.set_title(f'{column} - {size}x{size}µm² \nParameters : {param_names[secondary_var]}')
             ax.legend()
             
             if secondary_var[0] != 999:
