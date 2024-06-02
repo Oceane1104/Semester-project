@@ -234,8 +234,7 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
 
                 pund_index = sheet_name_list.index(sheet)
                 pund_data = data_list[pund_index]
-                print(f"Je suis la chip: {capa} et {sheet}")
-                pv_new_df = PUND_to_PV(pund_data, get_pund_times(pund_data)) 
+                pv_new_df = PUND_to_PV(pund_data, capa+' '+sheet, get_pund_times(pund_data)) 
                 data_list.append(pv_new_df)
                 sheet_name_list.append(f'P-V {voltage}V{precedent} PUND{negative}#1')
 
@@ -624,12 +623,12 @@ if calculate=="yes":
                 print(f"Le graph est : {graph_type}")
                 if 'P-V' in graph_type:
                     voltage = extract_voltage_in_graphtype(graph_type, "P-V")
-                    Thick_infos = exp.split("-")
-                    thickness = (int(Thick_infos[0]) + int(Thick_infos[1])) * int(Thick_infos[2])
+                    #Thick_infos = exp.split("-")
+                    #thickness = (int(Thick_infos[0]) + int(Thick_infos[1])) * int(Thick_infos[2])
                     result_df["Forward Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
-                    result_df["Energy density "+voltage] = Energy(table_experience, graph_type, thickness)[:,0]
-                    result_df["Energy total "+voltage] = Energy(table_experience, graph_type, thickness)[:,1]
-                    result_df["Energy lost "+voltage] = Energy(table_experience, graph_type, thickness)[:,2]
+                    #result_df["Energy density "+voltage] = Energy(table_experience, graph_type, thickness)[:,0]
+                    #result_df["Energy total "+voltage] = Energy(table_experience, graph_type, thickness)[:,1]
+                    #result_df["Energy lost "+voltage] = Energy(table_experience, graph_type, thickness)[:,2]
                     if calculate_neg == "yes":
                         result_df["Reverse Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
                     #print("Polarisations calculated for plot " + graph_type)
@@ -648,7 +647,7 @@ if calculate=="yes":
 
                 elif 'PUND' in graph_type and not 'P-V' in graph_type:
                     voltage = graph_type.split(' ')[1].split('V')[0]
-                    print(f"Le voltage est: {voltage}")
+                    #print(f"Le voltage est: {voltage}")
                     negative, negative_text = 0, ''
                     if 'neg' in graph_type:
                         negative, negative_text = 1, ' neg'
@@ -663,8 +662,9 @@ if calculate=="yes":
                     #print("Leakages calculated for plot " + graph_type)
                     
                 elif 'CV' in graph_type:
+                    print()
                     # calculate coercive field
-                    print("Calculations based on CV plots not implemented yet.")
+                    #print("Calculations based on CV plots not implemented yet.")
 
             # clean result df (remove empty columns)
             result_df_cleaned = result_df.dropna(axis=1, how='all')
