@@ -32,10 +32,12 @@ from tools import get_pund_times
 selected_chips = ""
 #selected_chips = "" # if you want to load all chips in the process parameter file
 
+PARALLEL_CAPAS = False
+
 ## PATHS
 user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
-
-if (user == "Nathalie"):     
+if (user == "Nathalie"):    
+    PARALLEL_CAPAS = True   
     PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
     LIST_GRAPH = ["P-V 1V_1#1","P-V 2V_1#1","P-V 3V_1#1", "P-V 4V_1#1","P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", 
                   "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
@@ -83,13 +85,19 @@ PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 
 
-#***** Function: get_area *****
-def get_area(geom_param_df):
-    
-    area = 0
-    size = 0
-    area = (int(size)*10**(-4))**2
-    return area
+#***** Function: get_area_cm2 *****
+def get_area_cm2(geom_exp):
+    if PARALLEL_CAPAS:
+        size, para = geom_exp.split("-")
+        nb_x, nb_y = para.split("x")
+    else:
+        size = geom_exp
+        nb_x = 1
+        nb_y = 1
+
+    area = (int(size)*10**(-4))**2 * int(nb_x) * int(nb_y)
+    return area # in cm2
+
 
 #***** Function: extract_capa_info *****
 # Input: filename of raw data, graph type, geomParam dataframe
@@ -320,8 +328,7 @@ def Polarisation(name_files, graph_type):
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
-            size = geometry.split('-')[0]
-            area = (int(size)*10**(-4))**2
+            area = get_area_cm2(geometry)
 
             size_phase = len(data['Charge']-1)
 
@@ -359,8 +366,7 @@ def Energy(name_files, graph_type, thickness):
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
-            size = geometry.split('-')[0]
-            area = (int(size)*10**(-4))**2
+            area = get_area_cm2(geometry)
             Volume = area * thickness
 
             charge_ma = max(data['Charge'])
@@ -398,8 +404,7 @@ def Polarisation_PUND(name_files, negative, graph_type):
 
         if (len(data) > 1 and abs(data['I'][0]) > 10**(-12) and abs(data['I'][1]) > 10**(-12)): # if data is not empty
             geometry = file.split('_')[1]
-            size = geometry.split('-')[0]
-            area = (int(size)*10**(-4))**2
+            area = get_area_cm2(geometry)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
@@ -490,8 +495,7 @@ def Leakage_PUND(name_files, negative, graph_type):
 
         if (len(data) > 1 and abs(data['I'][0]) > 10**(-10) and abs(data['I'][1]) > 10**(-10)): # if data is not empty
             geometry = file.split('_')[1]
-            size = geometry.split('-')[0]
-            area = (int(size)*10**(-4))**2
+            area = get_area_cm2(geometry)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
