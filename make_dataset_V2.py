@@ -37,7 +37,8 @@ user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
 
 if (user == "Nathalie"):     
     PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
-    LIST_GRAPH = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
+    LIST_GRAPH = ["P-V 1V_1#1","P-V 2V_1#1","P-V 3V_1#1", "P-V 4V_1#1","P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", 
+                  "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
                   "P-V 10V_1#1","PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
 elif (user == "Océane"):
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
@@ -207,11 +208,20 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
             wb = xlrd.open_workbook(file_paths[idx], logfile=open(os.devnull, 'w'))
             data_df = pd.read_excel(wb)
             if 'PUND' in graph_list[idx]:
-                tmp_df = pd.read_excel(file_paths[idx], sheet_name='Sheet3')
+                #tmp_df = pd.read_excel(file_paths[idx], sheet_name='Sheet3')
+
+                all_sheets = pd.read_excel(file_paths[idx], sheet_name=None)
+                sheet_names = list(all_sheets.keys())
+                third_sheet_name = sheet_names[2]  # Index 2 for the third sheet 
+                tmp_df = all_sheets[third_sheet_name]
+
                 #print(data_df)
-                tp  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'tp', 'Unnamed: 3'].values[0]
-                td  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'td', 'Unnamed: 3'].values[0]
-                trf = tmp_df.loc[tmp_df['Unnamed: 0'] == 'trf', 'Unnamed: 3'].values[0]
+                tp = tmp_df.loc[tmp_df.iloc[:, 0] == 'tp'].iloc[:,3].values[0]
+                td = tmp_df.loc[tmp_df.iloc[:, 0] == 'td'].iloc[:,3].values[0]
+                trf = tmp_df.loc[tmp_df.iloc[:, 0] == 'trf'].iloc[:,3].values[0]
+                #tp  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'tp', 'Unnamed: 3'].values[0]
+                #td  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'td', 'Unnamed: 3'].values[0]
+                #trf = tmp_df.loc[tmp_df['Unnamed: 0'] == 'trf', 'Unnamed: 3'].values[0]
                 tp, td, trf = float(tp), float(td), float(trf)
                 data_df['tp']  = np.nan
                 data_df['trf'] = np.nan
