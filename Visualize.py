@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 import re
 import numpy as np
 from scipy.integrate import simps
+from matplotlib.lines import Line2D
+
 
 from tools import butter_lowpass_filter, load_process_param_df, load_geom_param_df
 
 from plot_settings import TITLE, LABEL, SIZE_TITLE, SIZE_AXIS, SIZE_LABELS, SIZE_GRADUATION, SIZE_PLOTS, SIZE_LINE, LABEL_EXP, LABEL_PLAC, LABEL_GEO, BOX_PLACE, LOC_PLACE, SHOW_PLOTS, NAME, LABEL_GRAPH, LABEL_NB_EXP
-from plot_settings import TITLE_ADD_SIZE, TITLE_ADD_GRAPH
+from plot_settings import TITLE_ADD_SIZE, TITLE_ADD_GRAPH, TABLE_VOLTAGE, BOX_PLACE2, SIZE_GRADUATION,THICKNESS
 
 COLORS = ['blue', 'red', 'green', 'orange', 'purple', 'yellow', 'orange', 'cyan', 'brown', 'gray', 'olive', 'pink']
 
@@ -40,6 +42,14 @@ def extract_relevant_part(graph_type):
     match = re.search(pattern, graph_type)
     return match.group(0) if match else graph_type
 
+def extract_voltage(graph_name):
+    # Expression régulière pour trouver le motif comme 5v ou 6v
+    match = re.search(r'(\d+)v', graph_name, re.IGNORECASE)
+    if match:
+        return match.group(1) + 'V'
+    else:
+        return None
+
 def define_label_name(file_name, process_df, geom_df, graph_type = ""):
     chip_name, geometrical, placement, experience = file_name.split("_") 
 
@@ -69,9 +79,9 @@ def define_label_name(file_name, process_df, geom_df, graph_type = ""):
     if (LABEL_GRAPH):
         if graph_type != "":
             if (label_name == ""):
-                label_name = "Graph: "+ extract_relevant_part(graph_type)
+                label_name = "Graph: "+ extract_voltage(graph_type)
             else:
-                label_name = label_name + ", Graph: "+ extract_relevant_part(graph_type)
+                label_name = label_name + ", Graph: "+ extract_voltage(graph_type)
     if (LABEL_EXP):
         if (LABEL_NB_EXP == []):
             for i in range(len(process_names)):
@@ -231,7 +241,35 @@ def plot_CV(data_list, graph_type, interim_path, output_path, process_df, geom_d
         plt.show()
     return
 
-def plot_PV_special(data_list, graph_type, interim_path, output_path, special_graph, process_df, geom_df):
+def plot_CV_special(data_list, graph_type, interim_path, output_path, process_df, geom_df):
+    nb_plots = 0
+    plt.figure(figsize=SIZE_PLOTS)
+    colors = COLORS  # Liste de couleurs pour les courbes
+    for i, file_name in enumerate(data_list):
+        data = load_interim_data(file_name, graph_type[i], interim_path)
+        if data.empty: 
+            continue
+        nb_plots +=1
+
+        label_name = define_label_name(file_name, process_df, geom_df, graph_type[i])
+        plt.plot(data['DCV_AB'], data['Cp_AB']*10**(12), marker='o', label=f"{label_name}", 
+                        color=colors[(i-1)%len(colors)], linewidth=SIZE_LINE)
+    if nb_plots == 0:
+        print("No", graph_type, "data available for for capacitors", data_list)
+        return    
+    plt.title(f"{TITLE}", fontsize=SIZE_TITLE)
+    plt.xlabel('Voltage [V]', fontsize=SIZE_AXIS)
+    plt.ylabel('Capacitance [pF/m2]', fontsize=SIZE_AXIS)
+    plt.grid(True)
+    plt.legend(loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
+    plt.tick_params(axis='both', labelsize=SIZE_GRADUATION)
+    # Sauvegarder le plot dans le dossier spécifié avec le titre comme nom de fichier
+    plt.savefig(os.path.join(output_path, f"{TITLE}.png"))
+    if SHOW_PLOTS:
+        plt.show()
+    return
+
+def plot_PV_special(data_list, graph_type, interim_path, output_path, process_df, geom_df):
     nb_plots = 0
 
     plt.figure(figsize=SIZE_PLOTS)
@@ -261,6 +299,54 @@ def plot_PV_special(data_list, graph_type, interim_path, output_path, special_gr
     #{list(set(special_graph))} 
     plt.title(f"{TITLE}", fontsize=SIZE_TITLE)
     plt.xlabel('Voltage [V]', fontsize=SIZE_AXIS)
+    plt.ylabel('Polarisation [µC/cm2]', fontsize=SIZE_AXIS)
+    plt.grid(True)
+    plt.legend(loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
+    #plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=SIZE_LABELS)
+    plt.tick_params(axis='both', labelsize=SIZE_GRADUATION)
+    # Sauvegarder le plot dans le dossier spécifié avec le titre comme nom de fichier
+    plt.savefig(os.path.join(output_path, f"{TITLE}.png"))
+    if SHOW_PLOTS:
+        plt.show()
+    return
+
+def plot_PV_Electric_field(data_list, graph_type, interim_path, output_path, process_df, geom_df):
+    nb_plots = 0
+
+    plt.figure(figsize=SIZE_PLOTS)
+    colors = COLORS # Liste de couleurs pour les courbes
+    
+    for i, file_name in enumerate(data_list):
+        data = load_interim_data(file_name, graph_type[i], interim_path)
+        if data.empty:
+            continue
+        nb_plots += 1
+        geometrical =file_name.split("_")[1]
+        size = geometrical.split("-")[0]
+        Size_num = int(size)
+        area = (Size_num*10**(-4))**2
+        
+        charge_ma = max(data['Charge'])
+        charge_mi = min(data['Charge'])
+
+        diff_charge = (charge_ma + charge_mi)/2
+
+        chip = file_name.split('_')[0]
+
+        if chip in THICKNESS:
+            thickness = THICKNESS[chip]
+        else:
+            thickness = 1  # Valeur par défaut ou à spécifier
+            
+        label_name = define_label_name(file_name, process_df, geom_df, graph_type[i])
+        plt.plot(10**(-6)*data['Vforce']/(thickness*10**(-7)), (data['Charge'] - diff_charge)*10**6/area, marker='o', label=f"{label_name}", 
+                        color=colors[(i-1)%len(colors)], linewidth=SIZE_LINE)
+    if nb_plots == 0:
+        print("No", graph_type, "data available for for capacitors", data_list)
+        return
+    #{list(set(special_graph))} 
+    plt.title(f"{TITLE}", fontsize=SIZE_TITLE)
+    plt.xlabel('Electric field [MV/cm]', fontsize=SIZE_AXIS)
     plt.ylabel('Polarisation [µC/cm2]', fontsize=SIZE_AXIS)
     plt.grid(True)
     plt.legend(loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
@@ -388,17 +474,38 @@ def extract_energy_data(process_df, data_list, result_folder):
 
                     results.append({
                         'Chip': chip,
+                        'exp name' : file_name,
                         'Voltage': voltage,
                         'Energy_density': energy_density_mean,
                         'Efficiency': efficiency
                     })
     return pd.DataFrame(results)
 
+def find_label(process_df,chip_data):
+    process_names = process_df.columns
+    label_name = ""
+    exp_name = chip_data['exp name'].iloc[0]  # Accéder à la première (et unique) valeur de la colonne 'exp name'
+    remove_chip = exp_name.split('_')
+    name_split = remove_chip[0].split('-')
+    if (LABEL_NB_EXP == []):
+        for i in range(len(name_split)):
+            if (label_name == ""):
+                label_name = process_names[i+1] + ": " + name_split[i]
+            else:
+                label_name = label_name + ", " + process_names[i+1] + ": " + name_split[i]
+    else:
+        for i in range(len(LABEL_NB_EXP)):
+            if (label_name == ""):
+                label_name = process_names[LABEL_NB_EXP[i]+1] + ": " + name_split[LABEL_NB_EXP[i]]
+            else:
+                label_name = label_name + ", " + process_names[LABEL_NB_EXP[i]+1] + ": " + name_split[LABEL_NB_EXP[i]]
+    return label_name
+
 def plot_energy_data(PATH, data_list, result_folder, output_path):
     process_df = pd.read_excel(PATH)
     results_df = extract_energy_data(process_df, data_list, result_folder)
     
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig, ax1 = plt.subplots(figsize=SIZE_PLOTS)
     ax2 = ax1.twinx()
     
     chips = results_df['Chip'].unique()
@@ -406,30 +513,45 @@ def plot_energy_data(PATH, data_list, result_folder, output_path):
     
     for color, chip in zip(colors, chips):
         chip_data = results_df[results_df['Chip'] == chip]
-        ax1.plot(chip_data['Voltage'], chip_data['Energy_density'], 'o-', color=color, label=f'{chip} Energy Density')
-        ax2.plot(chip_data['Voltage'], chip_data['Efficiency'], '^-', color=color, label=f'{chip} Efficiency')
+        if chip in TABLE_VOLTAGE:
+            mask = np.isin(chip_data['Voltage'], TABLE_VOLTAGE[chip])
+            ax1.plot(chip_data[~mask]['Voltage'], chip_data[~mask]['Energy_density'], 'o-', color=color)
+            ax2.plot(chip_data[~mask]['Voltage'], chip_data[~mask]['Efficiency'], '^-', color=color)
+        else:
+            ax1.plot(chip_data['Voltage'], chip_data['Energy_density'], 'o-', color=color)
+            ax2.plot(chip_data['Voltage'], chip_data['Efficiency'], '^-', color=color)
     
-    ax1.set_xlabel('Voltage [V]')
-    ax1.set_ylabel('Energy Density [µJ/cm³]')
-    ax2.set_ylabel('Efficiency [%]')
-    
-    ax1.set_title(f'Energy Density and Efficiency vs Voltage {TITLE}')
-    
-    # Fusionner les légendes des deux axes
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+    ax1.title(f"{TITLE}", fontsize=SIZE_TITLE)
+    ax1.set_xlabel('Voltage [V]', fontsize=SIZE_AXIS)
+    ax1.set_ylabel('Energy Density [µJ/cm³]', fontsize=SIZE_AXIS)
+    ax2.set_ylabel('Efficiency [%]', fontsize=SIZE_AXIS)
+
+    # Créer les légendes personnalisées pour les marqueurs
+    custom_lines = [Line2D([0], [0], color='black', marker='o', linestyle='None'),
+                    Line2D([0], [0], color='black', marker='^', linestyle='None')]
+    custom_labels = ['Energy Density', 'Efficiency']
+
+    # Créer les légendes pour les couleurs des puces
+    color_legend_lines = [Line2D([0], [0], color=color, lw=4) for color in colors]
+    color_legend_labels = [find_label(process_df, results_df[results_df['Chip'] == chip]) for chip in chips]
+
+    # Combiner les lignes et les étiquettes des légendes
+    all_legend_lines = custom_lines + color_legend_lines
+    all_legend_labels = custom_labels + color_legend_labels
+
+    # Ajouter la légende combinée
+    ax1.legend(all_legend_lines, all_legend_labels, loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
     
     plt.grid(True)
     plt.savefig(os.path.join(output_path, f"{TITLE}_Energy_plot.png"))
     # plt.savefig('energy_density_efficiency_plot.png')
     plt.show()
 
-def plot_energy_data_E_Field(PATH, data_list, result_folder, output_path, thickness):
+def plot_energy_data_E_Field(PATH, data_list, result_folder, output_path):
     process_df = pd.read_excel(PATH)
     results_df = extract_energy_data(process_df, data_list, result_folder)
     
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig, ax1 = plt.subplots(figsize=SIZE_PLOTS)
     ax2 = ax1.twinx()
     
     chips = results_df['Chip'].unique()
@@ -437,22 +559,48 @@ def plot_energy_data_E_Field(PATH, data_list, result_folder, output_path, thickn
     
     for i, (color, chip) in enumerate(zip(colors, chips)):
         chip_data = results_df[results_df['Chip'] == chip]
-        ax1.plot(chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Energy_density'], 'o-', color=color, label=f'{chip} Energy Density')
-        ax2.plot(chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Efficiency'], '^-', color=color, label=f'{chip} Efficiency')
+        # Vérifier si l'épaisseur de la puce est spécifiée dans le dictionnaire
+        if chip in THICKNESS:
+            thickness = THICKNESS[chip]
+        else:
+            thickness = 1  # Valeur par défaut ou à spécifier
+
+        if chip in TABLE_VOLTAGE:
+            mask = np.isin(chip_data['Voltage'], TABLE_VOLTAGE[chip])
+            ax1.plot(10**(-6)*chip_data[~mask]['Voltage']/(thickness*10**(-7)), chip_data[~mask]['Energy_density'], 'o-', color=color)
+            ax2.plot(10**(-6)*chip_data[~mask]['Voltage']/(thickness*10**(-7)), chip_data[~mask]['Efficiency'], '^-', color=color)
+        else:
+            ax1.plot(10**(-6)*chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Energy_density'], 'o-', color=color, label=f'{chip} Energy Density')
+            ax2.plot(10**(-6)*chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Efficiency'], '^-', color=color, label=f'{chip} Efficiency')
     
-    ax1.set_xlabel('Electric field [V/cm]')
-    ax1.set_ylabel('Energy Density [µJ/cm³]')
-    ax2.set_ylabel('Efficiency [%]')
+    ax1.set_xlabel('Electric field [MV/cm]', fontsize=SIZE_AXIS)
+    ax1.set_ylabel('Energy Density [µJ/cm³]', fontsize=SIZE_AXIS)
+    ax2.set_ylabel('Efficiency [%]', fontsize=SIZE_AXIS)
+
+    # Changer la taille des graduations (ticks)
+    ax1.tick_params(axis='both', which='major', labelsize=SIZE_GRADUATION)
+    ax2.tick_params(axis='both', which='major', labelsize=SIZE_GRADUATION)
     
-    ax1.set_title(f'Energy Density and Efficiency vs Voltage {TITLE}')
-    
-    # Fusionner les légendes des deux axes
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+    ax1.set_title(f'{TITLE}', fontsize=SIZE_TITLE)
+
+    # Créer les légendes personnalisées pour les marqueurs
+    custom_lines = [Line2D([0], [0], color='black', marker='o', linestyle='None', markersize=SIZE_LABELS),
+                    Line2D([0], [0], color='black', marker='^', linestyle='None', markersize=SIZE_LABELS)]
+    custom_labels = ['Energy Density', 'Efficiency']
+
+    # Créer les légendes pour les couleurs des puces
+    color_legend_lines = [Line2D([0], [0], color=color, lw=4) for color in colors]
+    color_legend_labels = [find_label(process_df, results_df[results_df['Chip'] == chip]) for chip in chips]
+
+    # Combiner les lignes et les étiquettes des légendes
+    all_legend_lines = custom_lines + color_legend_lines
+    all_legend_labels = custom_labels + color_legend_labels
+
+    # Ajouter la légende combinée
+    ax1.legend(all_legend_lines, all_legend_labels, loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
     
     plt.grid(True)
-    plt.savefig(os.path.join(output_path, f"{TITLE}_Energy_plot.png"))
+    plt.savefig(os.path.join(output_path, f"{TITLE}.png"))
     # plt.savefig('energy_density_efficiency_plot.png')
     plt.show()
 

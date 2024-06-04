@@ -16,7 +16,7 @@ from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
 from tools import load_geom_param_df
 from tools import get_file_names
-from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plots_experience, plot_PV_and_calculate_energy, plot_energy_data, plot_energy_data_E_Field
+from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plots_experience, plot_PV_and_calculate_energy, plot_energy_data, plot_energy_data_E_Field, plot_PV_Electric_field, plot_CV_special
 
 #from folder1.file1 import ma_fonction$
 
@@ -24,14 +24,14 @@ from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plo
 from plot_settings import GRAPHES_TO_PLOT
 from plot_settings import GRAPH_VOLTAGES
 
-from plot_settings import SELECTED_CHIPS
+from plot_settings import SELECTED_CHIPS,E_F
 from plot_settings import SELECTED_EXPERIENCES 
 from plot_settings import SELECTED_GEOMETRIES
 from plot_settings import SELECTED_PLACEMENTS, PLOT_RESULT_MEAN, ELECTRIC_FIELD, THICKNESS
 from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT, FOLDER, INTEGRAL, PLOT_RESULT_ENERGY, CHIP_RESULT_ENERGY
 
 ## PATHS
-user = 'Thibault' #input("Who are you? Nathalie, Océane, Tom, Thibault ")
+user = 'Océane' #input("Who are you? Nathalie, Océane, Tom, Thibault ")
 
 if (user == "Nathalie"):      
     #Nathalie
@@ -52,7 +52,7 @@ else:
 PATH_OUTPUT = PATH_FOLDER + '\\Plots' + "\\" + FOLDER
 
 
-os.makedirs(PATH_OUTPUT, exist_ok=True)
+# os.makedirs(PATH_OUTPUT, exist_ok=True)
 
 PATH_PROCESSED_DATA = PATH_FOLDER + '\\Data\\Processed'
 PATH_INTERIM_DATA = PATH_FOLDER + '\\Data\\Interim'
@@ -124,8 +124,13 @@ elif(not(PLOT_RESULT_ENERGY) and SPECIAL and not(PLOT_RESULT_MEAN)):
     ### Plot graphes
     print("\n***** Plotting of graph", SPECIAL_PLOT)
     if extract_pattern_in_string(SPECIAL_PLOT[0], "P-V") is not None:
-        plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, SPECIAL_PLOT, process_df, geom_df)
-
+        if(E_F):
+            plot_PV_Electric_field(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
+        else:
+            plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
+        
+    elif extract_pattern_in_string(SPECIAL_PLOT[0], "CV") is not None:
+            plot_CV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
 
 
 
@@ -136,7 +141,7 @@ elif(not(PLOT_RESULT_ENERGY) and SPECIAL and not(PLOT_RESULT_MEAN)):
 
 if(PLOT_RESULT_ENERGY):
     if(ELECTRIC_FIELD):
-        plot_energy_data_E_Field(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA, PATH_OUTPUT, THICKNESS)
+        plot_energy_data_E_Field(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA, PATH_OUTPUT)
     else:
         plot_energy_data(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA, PATH_OUTPUT)
 

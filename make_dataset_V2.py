@@ -41,8 +41,8 @@ if (user == "Nathalie"):
                   "P-V 10V_1#1","PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
 elif (user == "Océane"):
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
-    LIST_GRAPH = [ "P-V 5V_1#1", "P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", 
-                  "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", 
+    LIST_GRAPH = [ "P-V 5V_1#1", "P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 12V_1#1", "P-V 14V_1#1",
+                  "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", 
                   "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1", "P-V 29V_1#1", "P-V 30V_1#1", "P-V 32V_1#1"
                   "PUND 5V_for5V#1", "PUND 7V_for7V#1", "PUND 8V_for8V#1", "PUND 10V_for10V#1", "PUND 12V_for12V#1", "PUND 14V_for14V#1", "PUND 15V_for15V#1",
                    "PUND 17V_for17V#1","PUND 18V_for18V#1" , "PUND 19V_for19V#1", "PUND 20V_for20V#1", "PUND 21V_for21V#1", 
