@@ -7,7 +7,7 @@ from scipy.integrate import simps
 from matplotlib.lines import Line2D
 
 
-from tools import butter_lowpass_filter, load_process_param_df, load_geom_param_df
+from tools import butter_lowpass_filter, load_process_param_df, load_geom_param_df, to_float
 
 from plot_settings import TITLE, LABEL, SIZE_TITLE, SIZE_AXIS, SIZE_LABELS, SIZE_GRADUATION, SIZE_PLOTS, SIZE_LINE, LABEL_EXP, LABEL_PLAC, LABEL_GEO, BOX_PLACE, LOC_PLACE, SHOW_PLOTS, NAME, LABEL_GRAPH, LABEL_NB_EXP
 from plot_settings import TITLE_ADD_SIZE, TITLE_ADD_GRAPH, TABLE_VOLTAGE, BOX_PLACE2, SIZE_GRADUATION,THICKNESS
@@ -608,9 +608,9 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
     param_names = np.array(process_param_df.columns)
     if not input("Do you want summary plots ? (yes/no) ") == 'yes':
         exit()
-    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
+    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) :")
     primary_var = int(primary_var)
-    secondary_var = input(f"Choose one or more secondary parameters (any) between 0 and {len(param_names) - 1} (position in {param_names}) - for example 0 2 3 : ")
+    secondary_var = input(f"Choose 999 for none, or one or more secondary parameters between 0 and {len(param_names) - 1} (position in {param_names}) separated by spaces :")
     secondary_var = np.array(secondary_var.split(" ")).astype(int)
     for j, size in enumerate(sizes):
         folder = path_processed_data  
@@ -622,10 +622,10 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                 
                 for sheetname in xl.sheet_names:
                     df = pd.read_excel(full_path, sheet_name=sheetname)
-                    
-                    last_line_given_size = df[df.iloc[:, 0] == size].tail(1) #only retains one measurement for a size
-                    
-                    col_values = columns[last_line_given_size]
+                    print(df)
+                    last_line_given_size = df[df.iloc[:, 1] == size].tail(1) #only retains one measurement for a size
+                    print(last_line_given_size)                   
+                    col_values = last_line_given_size[columns]
                     
                     parametres = file.split('_')[0]
                     parametres_list = parametres.split('-')
@@ -633,27 +633,69 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     temp_param = parametres_list
                     temp_param.extend(list(col_values.values.flatten()))
                     results.append(temp_param)
+        print(results)
         results_np = np.array(results).T
-        secondaries = results_np[secondary_var]
-        primaries = results_np[primary_var].astype(float)
+        secondaries = np.array([])
+        if secondary_var[0] != 999:
+            for res in range(len(results_np[0])):
+                secondary_temp = np.array([])
+                for par in range(len(secondary_var)):
+                    secondary_temp = np.append(secondary_temp, results_np[secondary_var[par]][res])
+                if len(secondaries) == 0:
+                    secondaries = [secondary_temp]
+                else:
+                    secondaries = np.vstack((secondaries, secondary_temp))
+        primaries = to_float(results_np[primary_var])
         for i, column in enumerate(columns):
-            print(parametres_list)
-            indx = len(parametres_list)-2+i
+            indx = len(parametres_list)-1+i-1
             values = results_np[indx].astype(float)
-            unique_secondaries = np.unique(secondaries)
+            unique_secondaries = np.unique(secondaries, axis=0)
         
             fig, ax = plt.subplots()
-        
-            for k, secondary in enumerate(unique_secondaries):
-                index = np.where(secondaries == secondary)[0]
-                ax.plot(primaries[index], values[index], '-o', label=f'{param_names[secondary_var]} {secondary}')
+            if secondary_var[0] != 999:
+                for k, secondary in enumerate(unique_secondaries):
+                    index = np.where(np.all(secondaries == secondary, axis=1))
+                    selected_primaries = primaries[index]
+                    selected_values = values[index]
+                    unique_primaries = np.unique(selected_primaries)
+                    unique_values = []
+                    unique_stddev = []
+                    for l, primary in enumerate(unique_primaries):
+                        index_p = np.where(selected_primaries == primary)
+                        unique_values = np.append(unique_values, np.mean(selected_values[index_p]))
+                        unique_stddev = np.append(unique_stddev, np.std(selected_values[index_p]))
+                    ax.errorbar(unique_primaries, unique_values, yerr=unique_stddev, fmt='-o', capsize=5, label=f'{secondary}')
+            else:
+                unique_primaries = np.unique(primaries)
+                unique_values = []
+                for l, primary in enumerate(unique_primaries):
+                    index_p = np.where(primaries == primary)
+                    unique_values = np.append(unique_values, np.mean(values[index_p]))
+                ax.plot(unique_primaries, unique_values, '-o')
+
         
             ax.set_xlabel(f'{param_names[primary_var]}')
             ax.set_ylabel(f'{column}')
-            ax.set_title(f'{column} - {size}x{size}µm²')
+            if size == 'MEA':
+                ax.set_title(f'{column} - Mean value \nParameters : {param_names[secondary_var]}')
+            else:
+                ax.set_title(f'{column} - {size}x{size}µm² \nParameters : {param_names[secondary_var]}')
             ax.legend()
             
-            filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
+            if secondary_var[0] != 999:
+                secondary_name = "for diff."
+                for j in range(len(param_names[secondary_var])):
+                    secondary_name = secondary_name + ' ' + param_names[secondary_var][j]
+                if size == 'MEA':
+                    filename = f'Report - {column} v. {param_names[primary_var]} comparison {secondary_name}.png'
+                else:
+                    filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison {secondary_name}.png'
+            else:
+                if size == 'MEA':
+                    filename = f'Report - {column} v. {param_names[primary_var]} comparison.png'
+                else:
+                    filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
+
 
             # Chemin complet pour enregistrer le fichier
             full_path = os.path.join(path_output, filename)

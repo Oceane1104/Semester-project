@@ -74,7 +74,7 @@ SPECIAL_CHIPS =  ["ml4may07", "ml4may02", "ml4apr01", "ml4apr06"]
 # "ml4apr01",
 #"P-V 7V_1#1",
 
-PLOT_RESULT_ENERGY = True
+PLOT_RESULT_ENERGY = False
 ELECTRIC_FIELD = True
 CHIP_RESULT_ENERGY = ["ml4may02", "ml4may07","ml4apr01", "ml4apr06"]
 #"ml4may02", "ml4may07","ml4apr01", "ml4apr06"

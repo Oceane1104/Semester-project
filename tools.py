@@ -50,7 +50,7 @@ def extract_info_in_capa_name(capa_name, chip_list, process_exp_list, geom_exp_l
     # get geometrical parameter
     geom_param = ""
     for param in geom_exp_list:
-        if re.search(param, rest_parts):
+        if re.search("_"+param+"_", rest_parts):
             rest_parts_l = re.split("_"+param+"_", rest_parts) # returns full string if pattern cannot be found
             #chip_name = rest_parts_l[0]
             rest_parts = ''.join(rest_parts_l)
@@ -59,7 +59,7 @@ def extract_info_in_capa_name(capa_name, chip_list, process_exp_list, geom_exp_l
     # get process parameter
     process_param = ""
     for param in process_exp_list:
-        if re.search(param, rest_parts):
+        if re.search("_"+param, rest_parts):
             rest_parts_l = re.split("_"+param, rest_parts) # returns full string if pattern cannot be found
             rest_parts = ''.join(rest_parts_l)
             process_param = param
@@ -225,7 +225,7 @@ def integrate_pund_lkg(data, negative, times = PUND_TIMES):
 # Input: dataframe of PUND, (timestamps of PUND)
 # Output: PV 5V plot
 # Note: change timestamps if they differ from original PUND 5V
-def PUND_to_PV(data, times=PUND_TIMES):
+def PUND_to_PV(data, name, times=PUND_TIMES):
     pv_plot = pd.DataFrame({'Charge': [], 'Vforce': [], 't': []})
     V_array, I_array, Q_array, t_array = [], [], [], []
     for i in range(4):
@@ -244,18 +244,23 @@ def PUND_to_PV(data, times=PUND_TIMES):
             delay = data['t'][start1] - t_array[len(t_array) - 1]
         t_array.extend(data['t'][start1:start1+min_length] - delay)
         
-    # print(f"Longueur de {len(I_array)} vs {len(t_array)}")
-
-    if (len(I_array) != 0 and len(t_array) != 0 and len(Q_array) != 0):
+    if len(I_array) != 0 and len(t_array) != 0:
         Q_array = cumtrapz(I_array, t_array)
-
-        # len_ar = min(len(Q_array), len(V_array), len(t_array))
-        # Q_array = Q_array[:len_ar]
-        # V_array = V_array[:len_ar]
-        # t_array = t_array[:len_ar]
-        
+        len_ar = min(len(Q_array), len(V_array), len(t_array))
+        Q_array = Q_array[:len_ar]
+        V_array = V_array[:len_ar]
+        t_array = t_array[:len_ar]
         pv_plot['Charge'], pv_plot['Vforce'], pv_plot['t'] = Q_array, V_array, t_array
         return pv_plot
     else:
+        print(f"WARNING : Error in extraction of plot PV from PUND {name}")
         pv_plot_dummy = pd.DataFrame({'Charge': [0], 'Vforce': [0], 't': [0]})
         return pv_plot_dummy
+
+def to_float(string):
+    try:
+        # Tentative de conversion en float
+        return string.astype(float)
+    except ValueError:
+        # Si la conversion échoue, renvoie la valeur originale
+        return string

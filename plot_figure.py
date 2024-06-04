@@ -31,7 +31,7 @@ from plot_settings import SELECTED_PLACEMENTS, PLOT_RESULT_MEAN, ELECTRIC_FIELD,
 from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT, FOLDER, INTEGRAL, PLOT_RESULT_ENERGY, CHIP_RESULT_ENERGY
 
 ## PATHS
-user = 'Océane' #input("Who are you? Nathalie, Océane, Tom, Thibault ")
+user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
 
 if (user == "Nathalie"):      
     #Nathalie
@@ -133,10 +133,18 @@ elif(not(PLOT_RESULT_ENERGY) and SPECIAL and not(PLOT_RESULT_MEAN)):
             plot_CV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
 
 
+SIZES = ['50', '100', '150', 'MEA']
+OBSERVABLES = ['Forward Polarisation PUND 5V ', 'Forward Leakage PUND 5V ']
+process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
+plots_experience(SIZES, OBSERVABLES, process_param_df, PATH_PROCESSED_DATA, PATH_OUTPUT)
+print("Finished generating report plots !")
+
+
+
 
 ### Plot results
 # nom du fichier
-#  fct qui retrouver le bon ficheir
+# fct qui retrouver le bon ficheir
 # Trouvez l'index de la ligne correspondant à la chip spécifique dans la première colonne
 
 if(PLOT_RESULT_ENERGY):
