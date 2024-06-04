@@ -22,7 +22,6 @@ from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plo
 
 # import plot settings
 from plot_settings import GRAPHES_TO_PLOT
-from plot_settings import GRAPH_VOLTAGES
 
 from plot_settings import SELECTED_CHIPS
 from plot_settings import SELECTED_EXPERIENCES 

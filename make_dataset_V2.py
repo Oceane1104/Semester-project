@@ -11,7 +11,7 @@ import openpyxl
 from zipfile import BadZipFile
 
 # import functions from other python files
-from tools import extract_pattern_in_string
+from tools import extract_pattern_in_string, get_area_cm2
 from tools import get_chips_from_experience
 from tools import get_experience_from_chip
 from tools import extract_info_in_capa_name
@@ -85,18 +85,7 @@ PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 
 
-#***** Function: get_area_cm2 *****
-def get_area_cm2(geom_exp):
-    if PARALLEL_CAPAS:
-        size, para = geom_exp.split("-")
-        nb_x, nb_y = para.split("x")
-    else:
-        size = geom_exp
-        nb_x = 1
-        nb_y = 1
 
-    area = (int(size)*10**(-4))**2 * int(nb_x) * int(nb_y)
-    return area # in cm2
 
 
 #***** Function: extract_capa_info *****
@@ -328,7 +317,7 @@ def Polarisation(name_files, graph_type):
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
 
             size_phase = len(data['Charge']-1)
 
@@ -366,7 +355,7 @@ def Energy(name_files, graph_type, thickness):
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
             Volume = area * thickness
 
             charge_ma = max(data['Charge'])
@@ -404,7 +393,7 @@ def Polarisation_PUND(name_files, negative, graph_type):
 
         if (len(data) > 1 and abs(data['I'][0]) > 10**(-12) and abs(data['I'][1]) > 10**(-12)): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
@@ -495,7 +484,7 @@ def Leakage_PUND(name_files, negative, graph_type):
 
         if (len(data) > 1 and abs(data['I'][0]) > 10**(-10) and abs(data['I'][1]) > 10**(-10)): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry,PARALLEL_CAPAS)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})

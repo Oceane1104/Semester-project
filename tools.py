@@ -6,6 +6,20 @@ from scipy.integrate import simps
 from scipy.signal import butter, filtfilt
 from scipy.integrate import cumtrapz
 
+#***** Function: get_area_cm2 *****
+def get_area_cm2(geom_exp, parallel_capas_bool):
+    if parallel_capas_bool:
+        size, para = geom_exp.split("-")
+        nb_x, nb_y = para.split("x")
+    else:
+        size = geom_exp
+        nb_x = 1
+        nb_y = 1
+
+    area = (int(size)*10**(-4))**2 * int(nb_x) * int(nb_y)
+    return area # in cm2
+
+
 ## PROCESS PARAMETER FILE : FIRST COL: SAMPLE ID, THEN VARIABLES
 #***** Function: load_process_param_df *****
 def load_process_param_df(PATH):
