@@ -557,12 +557,17 @@ if load=="yes":
 ## Get loaded files and corresponding chips
 interim_files = []
 chips_in_interim = []
-for root, dirs, files in os.walk(PATH_INTERIM_DATA):
-    for dir in dirs:
-        chips_in_interim.append(dir)
+
+for dir in os.listdir(PATH_INTERIM_DATA):
+    if dir == 'Archive':
+        continue
+    chips_in_interim.append(dir)
+    files = os.listdir(os.path.join(PATH_INTERIM_DATA, dir))
     for file in files:
         if file.endswith(".xlsx"):
-            interim_files.append(os.path.splitext(file)[0])
+            file = file[0:-5] # remove .xlsx
+            interim_files.append(file)
+
 chips_in_interim = np.unique(chips_in_interim)
 print("\nChips in interim: ",chips_in_interim)
 not_loaded_chips = [element for element in chip_names if element not in chips_in_interim]
@@ -575,40 +580,43 @@ exp_list_process = np.unique(exp_list_process)
 exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.astype(str).tolist()]
 exp_list_geometry = np.unique(exp_list_geometry)
 print("List of all possible process experiences:", exp_list_process)
-print("\nList of all possible geometry experiences:\n", exp_list_geometry)
+print("List of all possible geometry experiences:\n", exp_list_geometry)
 exp_list_all = []
 for process in exp_list_process:
     for geom in exp_list_geometry:
         exp_list_all.append(geom + "_" + process)
 #print("\nList of all possible combination of experiences:\n", exp_list_all)
 
-#for capa in interim_files:
-#    infos = extract_info_in_capa_name(capa, chips_in_interim, exp_list_process, exp_list_geometry)
-#    print("\nCapa: ",capa, "\nInfos: ", infos)
+
+if PARALLEL_CAPAS:
+    exp_list = exp_list_geometry
+else:
+    exp_list = exp_list_process
           
 ### CALCULATIONS + STORE RESULT
 calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
 if calculate=="yes":
 
     print("\n***********Calculation started*********")
-    calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
+    calculate_neg = input("\nCalculate reverse polarisation / coercive field / leakage values? yes/no: ")
 
-    for exp in exp_list_process: 
+    for exp in exp_list: 
         print("\n***Calculations for experience", exp,"***")
-        #chips_with_exp = get_chips_from_experience(exp, process_param_df, get_str=False)
-
-        #chip_list = []
-        #for chip in chips_with_exp:
-        #    if chip in chips_in_interim:
-        #        chip_list.append(chip)
 
         table_experience = []
         chip_list = []
         for capa in interim_files:
-            chip, geom, plac, process  = extract_info_in_capa_name(capa, chips_in_interim, [exp], exp_list_geometry)
-            if chip != "" and geom != "" and process != "":
-                table_experience.append(capa)
-                chip_list.append(chip)
+            chip, geom, plac, process = capa.split("_")
+            #if PARALLEL_CAPAS:
+                #chip, geom, plac, process  = extract_info_in_capa_name(capa, chips_in_interim, exp_list_process, [exp])
+            #else:
+            #    chip, geom, plac, process  = extract_info_in_capa_name(capa, chips_in_interim, [exp], exp_list_geometry)
+            #if chip != "" and geom != "" and process != "":
+
+            if chip in process_param_df.index.values:
+                if geom == exp or process == exp:
+                    table_experience.append(capa)
+                    chip_list.append(chip)
 
         if table_experience == []:
             print("No capacitors found for experience", exp)
@@ -619,20 +627,27 @@ if calculate=="yes":
         print("experience:", exp, "chips:",chip_str)
 
         calculate = True
-        if os.path.exists(new_path):
-            continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chip_str+" already exists. Do you want to recalculate? yes/no: ")
-            if not continue_calculation == "yes":
-                calculate = False
+        #if os.path.exists(new_path):
+        #    continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chip_str+" already exists. Do you want to recalculate? yes/no: ")
+        #    if not continue_calculation == "yes":
+        #        calculate = False
 
         if calculate:
-
-            result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Geometry","Placement"])
+            if PARALLEL_CAPAS:
+                result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Placement", "Process"])
+            else:
+                result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Placement", "Geometry"])
 
             for i in range(len(table_experience)):
-                infos = extract_info_in_capa_name(table_experience[i], chip_list, [exp], exp_list_geometry)
- 
+                infos = table_experience[i].split("_")
+                if PARALLEL_CAPAS:
+                    #infos = extract_info_in_capa_name(table_experience[i], chip_list, exp_list_process, [exp])
+                    result_df.iloc[i, result_df.columns.get_loc("Process")] = infos[3]
+                else:
+                    #infos = extract_info_in_capa_name(table_experience[i], chip_list, [exp], exp_list_geometry)
+                    result_df.iloc[i, result_df.columns.get_loc("Geometry")] = infos[1]
+                
                 result_df.iloc[i, result_df.columns.get_loc("Chip")] = infos[0]
-                result_df.iloc[i, result_df.columns.get_loc("Geometry")] = infos[1]
                 result_df.iloc[i, result_df.columns.get_loc("Placement")] = infos[2]
 
             for graph_type in LIST_GRAPH:
