@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import re
-import numpy as np
+import numpy as npT
 import glob
 
 user = input("Who are you? Nathalie, Océane, Tom, Thibault ")

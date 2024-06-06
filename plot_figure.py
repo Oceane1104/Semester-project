@@ -31,8 +31,8 @@ from plot_settings import SELECTED_PLACEMENTS
 from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT
 
 ## PATHS
-user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
-
+#user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
+user="Tom"
 if (user == "Nathalie"):      
     #Nathalie
     PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
@@ -40,8 +40,7 @@ elif (user == "Océane"):
     #Océane
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
 elif (user == "Tom"):
-    print("Error:Need to create your path")
-    exit()
+    PATH_FOLDER = 'C:\\Users\\gaspe\\OneDrive\\Bureau\\EPFL\\Master\\PDM\\common_code\\Projet final'
 elif (user == "Thibault"):
     PATH_FOLDER = 'C:\\Users\\Travail\\Desktop\\PDS\\Reports'
 else:
