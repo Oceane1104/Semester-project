@@ -515,16 +515,20 @@ def plot_energy_data(PATH, data_list, result_folder, output_path):
         chip_data = results_df[results_df['Chip'] == chip]
         if chip in TABLE_VOLTAGE:
             mask = np.isin(chip_data['Voltage'], TABLE_VOLTAGE[chip])
-            ax1.plot(chip_data[~mask]['Voltage'], chip_data[~mask]['Energy_density'], 'o-', color=color)
-            ax2.plot(chip_data[~mask]['Voltage'], chip_data[~mask]['Efficiency'], '^-', color=color)
+            ax1.plot(chip_data[~mask]['Voltage'], chip_data[~mask]['Energy_density'], 'o-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
+            ax2.plot(chip_data[~mask]['Voltage'], chip_data[~mask]['Efficiency'], '^-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
         else:
-            ax1.plot(chip_data['Voltage'], chip_data['Energy_density'], 'o-', color=color)
-            ax2.plot(chip_data['Voltage'], chip_data['Efficiency'], '^-', color=color)
+            ax1.plot(chip_data['Voltage'], chip_data['Energy_density'], 'o-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
+            ax2.plot(chip_data['Voltage'], chip_data['Efficiency'], '^-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
     
-    ax1.title(f"{TITLE}", fontsize=SIZE_TITLE)
+    ax1.set_title(f'{TITLE}', fontsize=SIZE_TITLE)
     ax1.set_xlabel('Voltage [V]', fontsize=SIZE_AXIS)
     ax1.set_ylabel('Energy Density [µJ/cm³]', fontsize=SIZE_AXIS)
     ax2.set_ylabel('Efficiency [%]', fontsize=SIZE_AXIS)
+
+    # Changer la taille des graduations (ticks)
+    ax1.tick_params(axis='both', which='major', labelsize=SIZE_GRADUATION)
+    ax2.tick_params(axis='both', which='major', labelsize=SIZE_GRADUATION)
 
     # Créer les légendes personnalisées pour les marqueurs
     custom_lines = [Line2D([0], [0], color='black', marker='o', linestyle='None'),
@@ -567,11 +571,11 @@ def plot_energy_data_E_Field(PATH, data_list, result_folder, output_path):
 
         if chip in TABLE_VOLTAGE:
             mask = np.isin(chip_data['Voltage'], TABLE_VOLTAGE[chip])
-            ax1.plot(10**(-6)*chip_data[~mask]['Voltage']/(thickness*10**(-7)), chip_data[~mask]['Energy_density'], 'o-', color=color)
-            ax2.plot(10**(-6)*chip_data[~mask]['Voltage']/(thickness*10**(-7)), chip_data[~mask]['Efficiency'], '^-', color=color)
+            ax1.plot(10**(-6)*chip_data[~mask]['Voltage']/(thickness*10**(-7)), chip_data[~mask]['Energy_density'], 'o-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
+            ax2.plot(10**(-6)*chip_data[~mask]['Voltage']/(thickness*10**(-7)), chip_data[~mask]['Efficiency'], '^-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
         else:
-            ax1.plot(10**(-6)*chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Energy_density'], 'o-', color=color, label=f'{chip} Energy Density')
-            ax2.plot(10**(-6)*chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Efficiency'], '^-', color=color, label=f'{chip} Efficiency')
+            ax1.plot(10**(-6)*chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Energy_density'], 'o-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
+            ax2.plot(10**(-6)*chip_data['Voltage']/(thickness[i]*10**(-7)), chip_data['Efficiency'], '^-', color=color, markersize=3*SIZE_LINE, linewidth=SIZE_LINE)
     
     ax1.set_xlabel('Electric field [MV/cm]', fontsize=SIZE_AXIS)
     ax1.set_ylabel('Energy Density [µJ/cm³]', fontsize=SIZE_AXIS)
@@ -584,12 +588,12 @@ def plot_energy_data_E_Field(PATH, data_list, result_folder, output_path):
     ax1.set_title(f'{TITLE}', fontsize=SIZE_TITLE)
 
     # Créer les légendes personnalisées pour les marqueurs
-    custom_lines = [Line2D([0], [0], color='black', marker='o', linestyle='None', markersize=SIZE_LABELS),
-                    Line2D([0], [0], color='black', marker='^', linestyle='None', markersize=SIZE_LABELS)]
+    custom_lines = [Line2D([0], [0], color='black', marker='o', linestyle='None', markersize=SIZE_LABELS, alpha=0.8),
+                    Line2D([0], [0], color='black', marker='^', linestyle='None', markersize=SIZE_LABELS, alpha=0.8)]
     custom_labels = ['Energy Density', 'Efficiency']
 
     # Créer les légendes pour les couleurs des puces
-    color_legend_lines = [Line2D([0], [0], color=color, lw=4) for color in colors]
+    color_legend_lines = [Line2D([0], [0], color=color, lw=4, marker='None') for color in colors]
     color_legend_labels = [find_label(process_df, results_df[results_df['Chip'] == chip]) for chip in chips]
 
     # Combiner les lignes et les étiquettes des légendes
