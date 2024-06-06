@@ -6,8 +6,12 @@ import time
 import xlrd
 import re
 import matplotlib.pyplot as plt
+from scipy.integrate import simps
+import openpyxl
+from zipfile import BadZipFile
+
 # import functions from other python files
-from tools import extract_pattern_in_string
+from tools import extract_pattern_in_string, get_area_cm2
 from tools import get_chips_from_experience
 from tools import get_experience_from_chip
 from tools import extract_info_in_capa_name
@@ -25,21 +29,42 @@ from tools import get_pund_times
 #---graph types to load: see below
 
 #---chips to load or calculate
-selected_chips = "" #["ml4apr01"]
+selected_chips = ""
 #selected_chips = "" # if you want to load all chips in the process parameter file
+
+PARALLEL_CAPAS = False
 
 ## PATHS
 user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
-
-if (user == "Nathalie"):     
+if (user == "Nathalie"):    
+    PARALLEL_CAPAS = True   
     PATH_FOLDER = 'C:\\Users\\natha\\Downloads\\Semester_project'
-    LIST_GRAPH = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
+    LIST_GRAPH = ["P-V 1V_1#1","P-V 2V_1#1","P-V 3V_1#1", "P-V 4V_1#1","P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", 
+                  "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
                   "P-V 10V_1#1","PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
 elif (user == "Océane"):
     PATH_FOLDER = 'C:\\Documents\\EPFL\\MA4\\Projet_de_semestre\\Code\\Projet_final'
-    LIST_GRAPH = ["P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", 
+    LIST_GRAPH = [ "P-V 5V_1#1", "P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", 
                   "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", 
-                  "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1" ]
+                  "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1", "P-V 29V_1#1", "P-V 30V_1#1", "P-V 32V_1#1"
+                  "PUND 5V_for5V#1", "PUND 7V_for7V#1", "PUND 8V_for8V#1", "PUND 10V_for10V#1", "PUND 12V_for12V#1", "PUND 14V_for14V#1", "PUND 15V_for15V#1",
+                   "PUND 17V_for17V#1","PUND 18V_for18V#1" , "PUND 19V_for19V#1", "PUND 20V_for20V#1", "PUND 21V_for21V#1", 
+                  "PUND 22V_for22V#1", "PUND 23V_for23V#1", "PUND 24V_for24V#1", "PUND 25V_for25V#1", "PUND 28V_for28V#1",
+                  "PUND 29V_for29V#1", "PUND 30V_for30V#1", "PUND 32V_for32V#1"
+                  "CV 3V_1#1", "CV 6V_1#1", "CV 8V_1#1", "CV 10V_1#1", "CV 11V_1#1", "CV 12V_1#1", "CV 13V_1#1", "CV 14V_1#1",
+                  "CV 15V_1#1", "CV 18V_1#1", "CV 20V_1#1", "CV 22V_1#1", "CV 23V_1#1", "CV 24V_1#1"]
+    
+    #  "P-V 5V_1#1", "P-V 6V_1#1", "P-V 7V_1#1", "P-V 8V_1#1", "P-V 9V_1#1", "P-V 10V_1#1", "P-V 40V_1#1", 
+    #               "P-V 29V_1#1", "P-V 15V_1#1", "P-V 17V_1#1", "P-V 18V_1#1", "P-V 19V_1#1", "P-V 20V_1#1", 
+    #               "P-V 21V_1#1", "P-V 22V_1#1", "P-V 23V_1#1", "P-V 24V_1#1", "P-V 25V_1#1", "P-V 28V_1#1", "P-V 29V_1#1", "P-V 30V_1#1", "P-V 32V_1#1"
+    #               "PUND 5V_for5V#1", "PUND 7V_for7V#1", "PUND 8V_for8V#1", "PUND 10V_for10V#1", "PUND 12V_for12V#1", "PUND 14V_for14V#1", "PUND 15V_for15V#1",
+     #               "PUND 17V_for17V#1", 
+# , "PUND 19V_for19V#1", "PUND 20V_for20V#1", "PUND 21V_for21V#1", 
+#                   "PUND 22V_for22V#1", "PUND 23V_for23V#1", "PUND 24V_for24V#1", "PUND 25V_for25V#1", "PUND 28V_for28V#1",
+#                   "PUND 29V_for29V#1", "PUND 30V_for30V#1", "PUND 32V_for32V#1"
+#                   "CV 3V_1#1", "CV 6V_1#1", "CV 8V_1#1", "CV 10V_1#1", "CV 11V_1#1", "CV 12V_1#1", "CV 13V_1#1", "CV 14V_1#1",
+#                   "CV 15V_1#1", "CV 18V_1#1", "CV 20V_1#1", "CV 22V_1#1", "CV 23V_1#1", "CV 24V_1#1"
+
 elif (user == "Tom"):
     PATH_FOLDER = 'C:\\Users\\gaspe\\OneDrive\\Bureau\\EPFL\\Master\\PDM\\common_code\\Projet final'
     LIST_GRAPH = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
@@ -62,13 +87,8 @@ PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 
 
-#***** Function: get_area *****
-def get_area(geom_param_df):
-    
-    area = 0
-    size = 0
-    area = (int(size)*10**(-4))**2
-    return area
+
+
 
 #***** Function: extract_capa_info *****
 # Input: filename of raw data, graph type, geomParam dataframe
@@ -177,14 +197,30 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
         data_list = []
         for idx in capa_idx:
             # load data into df
+            # Determine the file extension and use the appropriate library to read the file
+            # if file_paths[idx].endswith('.xls'):
+            #     wb = xlrd.open_workbook(file_paths[idx], logfile=open(os.devnull, 'w'))
+            #     data_df = pd.read_excel(file_paths[idx], engine='xlrd')
+            # elif file_paths[idx].endswith('.xlsx'):
+            #     wb = openpyxl.load_workbook(file_paths[idx])
+            #     data_df = pd.read_excel(file_paths[idx], engine='openpyxl')
             wb = xlrd.open_workbook(file_paths[idx], logfile=open(os.devnull, 'w'))
             data_df = pd.read_excel(wb)
             if 'PUND' in graph_list[idx]:
-                tmp_df = pd.read_excel(file_paths[idx], sheet_name='Sheet3')
+                #tmp_df = pd.read_excel(file_paths[idx], sheet_name='Sheet3')
+
+                all_sheets = pd.read_excel(file_paths[idx], sheet_name=None)
+                sheet_names = list(all_sheets.keys())
+                third_sheet_name = sheet_names[2]  # Index 2 for the third sheet 
+                tmp_df = all_sheets[third_sheet_name]
+
                 #print(data_df)
-                tp  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'tp', 'Unnamed: 3'].values[0]
-                td  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'td', 'Unnamed: 3'].values[0]
-                trf = tmp_df.loc[tmp_df['Unnamed: 0'] == 'trf', 'Unnamed: 3'].values[0]
+                tp = tmp_df.loc[tmp_df.iloc[:, 0] == 'tp'].iloc[:,3].values[0]
+                td = tmp_df.loc[tmp_df.iloc[:, 0] == 'td'].iloc[:,3].values[0]
+                trf = tmp_df.loc[tmp_df.iloc[:, 0] == 'trf'].iloc[:,3].values[0]
+                #tp  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'tp', 'Unnamed: 3'].values[0]
+                #td  = tmp_df.loc[tmp_df['Unnamed: 0'] ==  'td', 'Unnamed: 3'].values[0]
+                #trf = tmp_df.loc[tmp_df['Unnamed: 0'] == 'trf', 'Unnamed: 3'].values[0]
                 tp, td, trf = float(tp), float(td), float(trf)
                 data_df['tp']  = np.nan
                 data_df['trf'] = np.nan
@@ -207,24 +243,29 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
 
                 pund_index = sheet_name_list.index(sheet)
                 pund_data = data_list[pund_index]
-                pv_new_df = PUND_to_PV(pund_data, get_pund_times(pund_data)) 
+                pv_new_df = PUND_to_PV(pund_data, capa+' '+sheet, get_pund_times(pund_data)) 
                 data_list.append(pv_new_df)
                 sheet_name_list.append(f'P-V {voltage}V{precedent} PUND{negative}#1')
 
         new_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + capa + ".xlsx"
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
 
-        # store all sheets of the capa into excel file
-        if os.path.exists(new_path):
-            with pd.ExcelWriter(new_path, engine='openpyxl', mode='a',if_sheet_exists='replace') as writer:
-                for i in range(len(sheet_name_list)):
-                    data_list[i].to_excel(writer, sheet_name=sheet_name_list[i], index=False)
-        else:
-            with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
-                for i in range(len(sheet_name_list)):
-                    data_list[i].to_excel(writer, sheet_name=sheet_name_list[i], index=False)
-        interim_files_stored.append(capa)
-        print("Capacitor "+ capa +" loaded")
+        try:
+            # store all sheets of the capa into excel file
+            if os.path.exists(new_path):
+                with pd.ExcelWriter(new_path, engine='openpyxl', mode='a',if_sheet_exists='replace') as writer:
+                    for i in range(len(sheet_name_list)):
+                        data_list[i].to_excel(writer, sheet_name=sheet_name_list[i], index=False)
+            else:
+                with pd.ExcelWriter(new_path, engine='openpyxl', mode='w') as writer:
+                    for i in range(len(sheet_name_list)):
+                        data_list[i].to_excel(writer, sheet_name=sheet_name_list[i], index=False)
+            interim_files_stored.append(capa)
+            print("Capacitor "+ capa +" loaded")
+        except BadZipFile:
+            print(f"Le fichier {new_path} est corrompu et ne peut pas être chargé.")
+            # Optionnel : ajouter une logique supplémentaire pour gérer le fichier corrompu
+
 
     interim_files_stored = np.unique(interim_files_stored)
     if error == False:
@@ -244,17 +285,20 @@ def load_interim_data(interim_file_name, graph_type):
 
     file_path = PATH_INTERIM_DATA + "\\" + chip_name + "\\" + interim_file_name + ".xlsx"
     data_df = pd.DataFrame()
-
-    if os.path.exists(file_path): # check if file_path exists
-        with pd.ExcelFile(file_path) as xls:
-            sheet_names = xls.sheet_names
-            if graph_type in sheet_names: # check if sheet name exists
-                # Read the Excel file
-                data_df = pd.read_excel(file_path, sheet_name=graph_type)
-            else:
-                print("WARNING: Sheet name",  graph_type ,"inexistant for capacitor", interim_file_name)
-    else:
-        print("ERROR: File",interim_file_name,"doesn't exist in path", file_path)
+    try:
+        if os.path.exists(file_path): # check if file_path exists
+            with pd.ExcelFile(file_path) as xls:
+                sheet_names = xls.sheet_names
+                if graph_type in sheet_names: # check if sheet name exists
+                    # Read the Excel file
+                    data_df = pd.read_excel(file_path, sheet_name=graph_type)
+                else:
+                    print("WARNING: Sheet name",  graph_type ,"inexistant for capacitor", interim_file_name)
+        else:
+            print("ERROR: File",interim_file_name,"doesn't exist in path", file_path)
+    except BadZipFile:
+            print(f"Le fichier {new_path} est corrompu et ne peut pas être chargé.")
+            # Optionnel : ajouter une logique supplémentaire pour gérer le fichier corrompu
 
     return data_df
 
@@ -275,8 +319,7 @@ def Polarisation(name_files, graph_type):
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
-            size = geometry.split('-')[0]
-            area = (int(size)*10**(-4))**2
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
 
             size_phase = len(data['Charge']-1)
 
@@ -303,6 +346,41 @@ def Polarisation(name_files, graph_type):
     polarisations = np.array(polarisations)
     return polarisations
 
+def Energy(name_files, graph_type, thickness):
+    energy = []
+    for file in name_files:
+        energy_total = np.nan
+        energy_density = np.nan
+        energy_lost = np.nan
+
+        data = load_interim_data(file, graph_type)
+
+        if len(data): # if data is not empty
+            geometry = file.split('_')[1]
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
+            Volume = area * thickness
+
+            charge_ma = max(data['Charge'])
+            charge_mi = min(data['Charge'])
+            diff_charge = (charge_ma + charge_mi)/2
+
+            Vforce = data['Vforce']
+            Polarisation = (data['Charge'] - diff_charge)*10**6 / Volume
+            
+            # Find the index of the maximum voltage
+            max_voltage_idx = np.argmax(Vforce)
+
+            # Calculate energy densities
+            n = len(Vforce)
+            energy_total = simps(Vforce[:max_voltage_idx], Polarisation[:max_voltage_idx])
+            energy_density = -simps(Vforce[max_voltage_idx:n//2], Polarisation[max_voltage_idx:n//2])
+            energy_lost = energy_total - energy_density
+
+        energy.append([energy_density, energy_total, energy_lost])
+        #penser à normaliser les unités
+    energy = np.array(energy)
+    return energy
+
 
 #***** Function: Polarisation *****
 # Input: file name, negative? (0 for PUND pos, 1 for PUND neg)
@@ -315,10 +393,9 @@ def Polarisation_PUND(name_files, negative, graph_type):
         data = []
         data = load_interim_data(file, graph_type)
 
-        if len(data): # if data is not empty
+        if (len(data) > 1 and abs(data['I'][0]) > 10**(-12) and abs(data['I'][1]) > 10**(-12)): # if data is not empty
             geometry = file.split('_')[1]
-            size = geometry.split('-')[0]
-            area = (int(size)*10**(-4))**2
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
@@ -328,6 +405,10 @@ def Polarisation_PUND(name_files, negative, graph_type):
 
             pol_max = chargep * 10**(6) / area 
             pol_min = chargen * 10**(6) / area  #µC.cm-²
+        else:
+            print(f"ERROR: could not derive polarisation from {graph_type}")
+            pol_max = np.nan
+            pol_min = np.nan
         
         if negative == 0:
             polarisations.append([pol_max, pol_min])
@@ -403,10 +484,9 @@ def Leakage_PUND(name_files, negative, graph_type):
         data = []
         data = load_interim_data(file, graph_type)
 
-        if len(data): # if data is not empty
+        if (len(data) > 1 and abs(data['I'][0]) > 10**(-10) and abs(data['I'][1]) > 10**(-10)): # if data is not empty
             geometry = file.split('_')[1]
-            size = geometry.split('-')[0]
-            area = (int(size)*10**(-4))**2
+            area = get_area_cm2(geometry,PARALLEL_CAPAS)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
@@ -415,6 +495,10 @@ def Leakage_PUND(name_files, negative, graph_type):
 
             lkg_max = leakagep * 10**(6) / area 
             lkg_min = leakagen * 10**(6) / area  #µA.cm-²
+        else:
+            print(f"ERROR: could not derive leakage from {graph_type}")
+            lkg_max = np.nan
+            lgk_min = np.nan
         
         if negative == 0:
             leakage.append([lkg_max, lkg_min])
@@ -423,62 +507,6 @@ def Leakage_PUND(name_files, negative, graph_type):
         #penser à normaliser les unités
     leakage = np.array(leakage)
     return leakage
-
-def plots_experience(sizes, columns):
-    param_names = np.array(process_param_df.columns)
-    if not input("Do you want summary plots ? (yes/no) ") == 'yes':
-        exit()
-    primary_var = input(f"Choose your primary parameter (should be a quantitative value) between 0 and {len(param_names) -1} (position in {param_names}) ")
-    primary_var = int(primary_var)
-    secondary_var = input(f"Choose a secondary parameter (any) between 0 and {len(param_names) -1} (position in {param_names}) ")
-    secondary_var = int(secondary_var)
-    for j, size in enumerate(sizes):
-        folder = PATH_PROCESSED_DATA  
-        results = []
-        for file in os.listdir(folder):
-            if file.endswith('.xlsx'):
-                full_path = os.path.join(folder, file)
-                xl = pd.ExcelFile(full_path)
-                
-                for nom_feuille in xl.sheet_names:
-                    df = pd.read_excel(full_path, sheet_name=nom_feuille)
-                    
-                    last_line_given_size = df[df.iloc[:, 0] == size].tail(1) #only retains one measurement for a size
-                    
-                    col_values = last_line_given_size[columns]
-                    
-                    parametres = file.split('_')[0]
-                    parametres_list = parametres.split('-')
-                    
-                    results.append(parametres_list + list(col_values.values.flatten()))
-        results_np = np.array(results).T
-        secondaries = results_np[secondary_var]
-        primaries = results_np[primary_var].astype(float)
-        for i, column in enumerate(columns):
-            values = results_np[len(parametres_list) + i].astype(float)
-            unique_secondaries = np.unique(secondaries)
-        
-            fig, ax = plt.subplots()
-        
-            for secondary in unique_secondaries:
-                indices = secondaries == secondary
-                ax.plot(primaries[indices], values[indices], '-o', label=f'{param_names[secondary_var]} {secondary}')
-        
-            ax.set_xlabel(f'{param_names[primary_var]}')
-            ax.set_ylabel(f'{column}')
-            ax.set_title(f'{column} - {size}x{size}µm²')
-            ax.legend()
-            
-            filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
-
-            # Chemin complet pour enregistrer le fichier
-            full_path = os.path.join(PATH_OUTPUT, filename)
-
-            # Enregistrer le graphique dans le dossier spécifié
-            plt.savefig(full_path)
-
-            # Fermer la figure après l'enregistrement pour libérer la mémoire
-            plt.close()
 
 def get_chip_name(capa_name, chip_list):
     chip = None
@@ -520,12 +548,17 @@ if load=="yes":
 ## Get loaded files and corresponding chips
 interim_files = []
 chips_in_interim = []
-for root, dirs, files in os.walk(PATH_INTERIM_DATA):
-    for dir in dirs:
-        chips_in_interim.append(dir)
+
+for dir in os.listdir(PATH_INTERIM_DATA):
+    if dir == 'Archive':
+        continue
+    chips_in_interim.append(dir)
+    files = os.listdir(os.path.join(PATH_INTERIM_DATA, dir))
     for file in files:
         if file.endswith(".xlsx"):
-            interim_files.append(os.path.splitext(file)[0])
+            file = file[0:-5] # remove .xlsx
+            interim_files.append(file)
+
 chips_in_interim = np.unique(chips_in_interim)
 print("\nChips in interim: ",chips_in_interim)
 not_loaded_chips = [element for element in chip_names if element not in chips_in_interim]
@@ -538,40 +571,43 @@ exp_list_process = np.unique(exp_list_process)
 exp_list_geometry = ['-'.join(map(str, row)) for row in geom_param_df.values.astype(str).tolist()]
 exp_list_geometry = np.unique(exp_list_geometry)
 print("List of all possible process experiences:", exp_list_process)
-print("\nList of all possible geometry experiences:\n", exp_list_geometry)
+print("List of all possible geometry experiences:\n", exp_list_geometry)
 exp_list_all = []
 for process in exp_list_process:
     for geom in exp_list_geometry:
         exp_list_all.append(geom + "_" + process)
 #print("\nList of all possible combination of experiences:\n", exp_list_all)
 
-#for capa in interim_files:
-#    infos = extract_info_in_capa_name(capa, chips_in_interim, exp_list_process, exp_list_geometry)
-#    print("\nCapa: ",capa, "\nInfos: ", infos)
+
+if PARALLEL_CAPAS:
+    exp_list = exp_list_geometry
+else:
+    exp_list = exp_list_process
           
 ### CALCULATIONS + STORE RESULT
 calculate = input("\nCalculate results using graphes: "+ list_graph_str+ " for the chips in interim? yes/no: ")
 if calculate=="yes":
 
     print("\n***********Calculation started*********")
-    calculate_neg = input("\nCalculate negative polarisation / coercive field / leakage values? yes/no: ")
+    calculate_neg = input("\nCalculate reverse polarisation / coercive field / leakage values? yes/no: ")
 
-    for exp in exp_list_process: 
+    for exp in exp_list: 
         print("\n***Calculations for experience", exp,"***")
-        #chips_with_exp = get_chips_from_experience(exp, process_param_df, get_str=False)
-
-        #chip_list = []
-        #for chip in chips_with_exp:
-        #    if chip in chips_in_interim:
-        #        chip_list.append(chip)
 
         table_experience = []
         chip_list = []
         for capa in interim_files:
-            chip, geom, plac, process  = extract_info_in_capa_name(capa, chips_in_interim, [exp], exp_list_geometry)
-            if chip != "" and geom != "" and process != "":
-                table_experience.append(capa)
-                chip_list.append(chip)
+            chip, geom, plac, process = capa.split("_")
+            #if PARALLEL_CAPAS:
+                #chip, geom, plac, process  = extract_info_in_capa_name(capa, chips_in_interim, exp_list_process, [exp])
+            #else:
+            #    chip, geom, plac, process  = extract_info_in_capa_name(capa, chips_in_interim, [exp], exp_list_geometry)
+            #if chip != "" and geom != "" and process != "":
+
+            if chip in process_param_df.index.values:
+                if geom == exp or process == exp:
+                    table_experience.append(capa)
+                    chip_list.append(chip)
 
         if table_experience == []:
             print("No capacitors found for experience", exp)
@@ -582,26 +618,38 @@ if calculate=="yes":
         print("experience:", exp, "chips:",chip_str)
 
         calculate = True
-        if os.path.exists(new_path):
-            continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chip_str+" already exists. Do you want to recalculate? yes/no: ")
-            if not continue_calculation == "yes":
-                calculate = False
+        #if os.path.exists(new_path):
+        #    continue_calculation = input("\nThe results for the experience "+exp+" for chips "+chip_str+" already exists. Do you want to recalculate? yes/no: ")
+        #    if not continue_calculation == "yes":
+        #        calculate = False
 
         if calculate:
-
-            result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Geometry","Placement"])
+            if PARALLEL_CAPAS:
+                result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Placement", "Process"])
+            else:
+                result_df = pd.DataFrame(index=range(len(table_experience)),columns=["Chip","Placement", "Geometry"])
 
             for i in range(len(table_experience)):
-                infos = extract_info_in_capa_name(table_experience[i], chip_list, [exp], exp_list_geometry)
- 
+                infos = table_experience[i].split("_")
+                if PARALLEL_CAPAS:
+                    #infos = extract_info_in_capa_name(table_experience[i], chip_list, exp_list_process, [exp])
+                    result_df.iloc[i, result_df.columns.get_loc("Process")] = infos[3]
+                else:
+                    #infos = extract_info_in_capa_name(table_experience[i], chip_list, [exp], exp_list_geometry)
+                    result_df.iloc[i, result_df.columns.get_loc("Geometry")] = infos[1]
+                
                 result_df.iloc[i, result_df.columns.get_loc("Chip")] = infos[0]
-                result_df.iloc[i, result_df.columns.get_loc("Geometry")] = infos[1]
                 result_df.iloc[i, result_df.columns.get_loc("Placement")] = infos[2]
 
             for graph_type in LIST_GRAPH:
                 if 'P-V' in graph_type:
                     voltage = extract_voltage_in_graphtype(graph_type, "P-V")
+                    #Thick_infos = exp.split("-")
+                    #thickness = (int(Thick_infos[0]) + int(Thick_infos[1])) * int(Thick_infos[2])
                     result_df["Forward Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,0]
+                    #result_df["Energy density "+voltage] = Energy(table_experience, graph_type, thickness)[:,0]
+                    #result_df["Energy total "+voltage] = Energy(table_experience, graph_type, thickness)[:,1]
+                    #result_df["Energy lost "+voltage] = Energy(table_experience, graph_type, thickness)[:,2]
                     if calculate_neg == "yes":
                         result_df["Reverse Polarisation "+voltage] = Polarisation(table_experience, graph_type)[:,1]
                     #print("Polarisations calculated for plot " + graph_type)
@@ -619,22 +667,25 @@ if calculate=="yes":
                     #print("Leakage currents calculated for plot " + graph_type)
 
                 elif 'PUND' in graph_type and not 'P-V' in graph_type:
+                    voltage = graph_type.split(' ')[1].split('V')[0]
+                    #print(f"Le voltage est: {voltage}")
                     negative, negative_text = 0, ''
                     if 'neg' in graph_type:
                         negative, negative_text = 1, ' neg'
-                    result_df[f"Forward Polarisation PUND{negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,0]/2
+                    result_df[f"Forward Polarisation PUND {voltage}V {negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,0]/2
                     if calculate_neg == "yes":
-                        result_df[f"Reverse Polarisation PUND{negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,1]/2
+                        result_df[f"Reverse Polarisation PUND {voltage}V {negative_text}"] = Polarisation_PUND(table_experience, negative, graph_type)[:,1]/2
                     #print("Polarisations calculated for plot " + graph_type)
 
-                    result_df[f"Forward Leakage PUND{negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,0]
+                    result_df[f"Forward Leakage PUND {voltage}V {negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,0]
                     if calculate_neg == "yes":
-                        result_df[f"Reverse Leakage PUND{negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,1]
+                        result_df[f"Reverse Leakage PUND {voltage}V {negative_text}"] = Leakage_PUND(table_experience, negative, graph_type)[:,1]
                     #print("Leakages calculated for plot " + graph_type)
                     
                 elif 'CV' in graph_type:
+                    print()
                     # calculate coercive field
-                    print("Calculations based on CV plots not implemented yet.")
+                    #print("Calculations based on CV plots not implemented yet.")
 
             # clean result df (remove empty columns)
             result_df_cleaned = result_df.dropna(axis=1, how='all')
@@ -659,10 +710,3 @@ if calculate=="yes":
                 result_df_cleaned.to_excel(writer, index=False)
 
     print("\n***********Calculation completed*********")
-
-SIZES = ['MEA']
-OBSERVABLES = ['Pos Polarisation PUND',  'Pos Leakage PUND']
-plots_experience(SIZES, OBSERVABLES)
-print("Finished generating report plots !")
-
-print("\n***********Calculation completed*********")

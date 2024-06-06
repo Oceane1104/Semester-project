@@ -6,6 +6,20 @@ from scipy.integrate import simps
 from scipy.signal import butter, filtfilt
 from scipy.integrate import cumtrapz
 
+#***** Function: get_area_cm2 *****
+def get_area_cm2(geom_exp, parallel_capas_bool):
+    if parallel_capas_bool:
+        size, para = geom_exp.split("-")
+        nb_x, nb_y = para.split("x")
+    else:
+        size = geom_exp
+        nb_x = 1
+        nb_y = 1
+
+    area = (int(size)*10**(-4))**2 * int(nb_x) * int(nb_y)
+    return area # in cm2
+
+
 ## PROCESS PARAMETER FILE : FIRST COL: SAMPLE ID, THEN VARIABLES
 #***** Function: load_process_param_df *****
 def load_process_param_df(PATH):
@@ -50,7 +64,7 @@ def extract_info_in_capa_name(capa_name, chip_list, process_exp_list, geom_exp_l
     # get geometrical parameter
     geom_param = ""
     for param in geom_exp_list:
-        if re.search(param, rest_parts):
+        if re.search("_"+param+"_", rest_parts):
             rest_parts_l = re.split("_"+param+"_", rest_parts) # returns full string if pattern cannot be found
             #chip_name = rest_parts_l[0]
             rest_parts = ''.join(rest_parts_l)
@@ -59,7 +73,7 @@ def extract_info_in_capa_name(capa_name, chip_list, process_exp_list, geom_exp_l
     # get process parameter
     process_param = ""
     for param in process_exp_list:
-        if re.search(param, rest_parts):
+        if re.search("_"+param, rest_parts):
             rest_parts_l = re.split("_"+param, rest_parts) # returns full string if pattern cannot be found
             rest_parts = ''.join(rest_parts_l)
             process_param = param
@@ -169,13 +183,17 @@ def get_file_names(path,chip_names=[]):
 # Output: less noisy measurement
 # Note: only change cutoff frequency in case of error, and do so consistently to keep comparisons relevant
 def butter_lowpass_filter(data, data_time, cutoff=2000000, order=5):
-    fs = 1 / (data_time[1] - data_time[0])
-    nyq = 0.5 * fs
-    normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    padlen = min(len(data) - 1, 3 * max(len(a), len(b)))  
-    filtered_data = filtfilt(b, a, data, padlen=padlen)  
-    return filtered_data
+    if(len(data_time) > 1):
+        fs = 1 / (data_time[1] - data_time[0])
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        if(fs > 0.1 and normal_cutoff > 0.1):
+            b, a = butter(order, normal_cutoff, btype='low', analog=False)
+            padlen = min(len(data) - 1, 3 * max(len(a), len(b)))  
+            filtered_data = filtfilt(b, a, data, padlen=padlen)  
+            return filtered_data
+    else:
+        return data
 
 PUND_TIMES = [ 25e-6,  50e-6, 150e-6, 175e-6, #1st edge of 1st two pulses
               100e-6, 125e-6, 225e-6, 250e-6, #2nd         1st
@@ -221,7 +239,7 @@ def integrate_pund_lkg(data, negative, times = PUND_TIMES):
 # Input: dataframe of PUND, (timestamps of PUND)
 # Output: PV 5V plot
 # Note: change timestamps if they differ from original PUND 5V
-def PUND_to_PV(data, times=PUND_TIMES):
+def PUND_to_PV(data, name, times=PUND_TIMES):
     pv_plot = pd.DataFrame({'Charge': [], 'Vforce': [], 't': []})
     V_array, I_array, Q_array, t_array = [], [], [], []
     for i in range(4):
@@ -240,8 +258,23 @@ def PUND_to_PV(data, times=PUND_TIMES):
             delay = data['t'][start1] - t_array[len(t_array) - 1]
         t_array.extend(data['t'][start1:start1+min_length] - delay)
         
-    Q_array = cumtrapz(I_array, t_array, initial=0)
-    
-    pv_plot['Charge'], pv_plot['Vforce'], pv_plot['t'] = Q_array, V_array, t_array
-    return pv_plot
+    if len(I_array) != 0 and len(t_array) != 0:
+        Q_array = cumtrapz(I_array, t_array)
+        len_ar = min(len(Q_array), len(V_array), len(t_array))
+        Q_array = Q_array[:len_ar]
+        V_array = V_array[:len_ar]
+        t_array = t_array[:len_ar]
+        pv_plot['Charge'], pv_plot['Vforce'], pv_plot['t'] = Q_array, V_array, t_array
+        return pv_plot
+    else:
+        print(f"WARNING : Error in extraction of plot PV from PUND {name}")
+        pv_plot_dummy = pd.DataFrame({'Charge': [0], 'Vforce': [0], 't': [0]})
+        return pv_plot_dummy
 
+def to_float(string):
+    try:
+        # Tentative de conversion en float
+        return string.astype(float)
+    except ValueError:
+        # Si la conversion échoue, renvoie la valeur originale
+        return string

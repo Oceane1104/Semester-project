@@ -7,7 +7,7 @@ import xlrd
 
 from plot_settings import TITLE
 
-# import functions from other python files
+# import functions from other python filess
 from tools import extract_pattern_in_string
 from tools import get_chips_from_experience
 from tools import get_experience_from_chip
@@ -16,19 +16,18 @@ from tools import extract_voltage_in_graphtype
 from tools import load_process_param_df
 from tools import load_geom_param_df
 from tools import get_file_names
-from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special
+from Visualize import plot_PV, plot_CV, plot_pund, plot_IV, plot_PV_special, plots_experience, plot_PV_and_calculate_energy, plot_energy_data, plot_energy_data_E_Field
 
 #from folder1.file1 import ma_fonction$
 
 # import plot settings
-from plot_settings import GRAPHES_TO_PLOT 
-from plot_settings import GRAPH_VOLTAGES
+from plot_settings import GRAPHES_TO_PLOT
 
 from plot_settings import SELECTED_CHIPS
 from plot_settings import SELECTED_EXPERIENCES 
 from plot_settings import SELECTED_GEOMETRIES
-from plot_settings import SELECTED_PLACEMENTS
-from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT
+from plot_settings import SELECTED_PLACEMENTS, PLOT_RESULT_MEAN, ELECTRIC_FIELD, THICKNESS
+from plot_settings import SPECIAL, SPECIAL_CHIPS, SPECIAL_EXPERIENCES, SPECIAL_GEOMETRIES, SPECIAL_PLACEMENT, SPECIAL_PLOT, FOLDER, INTEGRAL, PLOT_RESULT_ENERGY, CHIP_RESULT_ENERGY
 
 ## PATHS
 #user = input("Who are you? Nathalie, Océane, Tom, Thibault ")
@@ -47,7 +46,10 @@ else:
     print("Error: Invalid user input.")
     exit()
 
-PATH_OUTPUT = PATH_FOLDER + '\\Plots' + "\\" + TITLE
+#PATH_OUTPUT = PATH_FOLDER + '\\Plots' + "\\" + TITLE
+PATH_OUTPUT = PATH_FOLDER + '\\Plots' + "\\" + FOLDER
+
+
 os.makedirs(PATH_OUTPUT, exist_ok=True)
 
 PATH_PROCESSED_DATA = PATH_FOLDER + '\\Data\\Processed'
@@ -59,7 +61,7 @@ PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 process_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
 geom_df = load_geom_param_df(PATH_GEOM_PARAM_FILE)
 
-if (not(SPECIAL)):
+if (not(SPECIAL) and not(PLOT_RESULT_ENERGY) and not(PLOT_RESULT_MEAN)):
 
     chip_names = np.array(process_df.index)
     if SELECTED_CHIPS != []:
@@ -75,22 +77,25 @@ if (not(SPECIAL)):
     capas_to_plot = select_capas_with_parameter(capas_with_geom, SELECTED_PLACEMENTS, 2)
     print("selected capacitors:",capas_to_plot)
 
-
+    
     ### Plot graphes
     for graph in GRAPHES_TO_PLOT:
         print("\n***** Plotting of graph", graph)
-        if extract_pattern_in_string(graph, "P-V") is not None:
-            plot_PV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
+        if(INTEGRAL):
+            plot_PV_and_calculate_energy(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
+        else:
+            if extract_pattern_in_string(graph, "P-V") is not None:
+                plot_PV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
 
-        elif extract_pattern_in_string(graph, "IV") is not None:
-            plot_IV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
-            
-        elif extract_pattern_in_string(graph, "CV") is not None:
-            plot_CV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
-            
-        elif extract_pattern_in_string(graph, "PUND") is not None:
-            plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
-else:
+            elif extract_pattern_in_string(graph, "IV") is not None:
+                plot_IV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
+                
+            elif extract_pattern_in_string(graph, "CV") is not None:
+                plot_CV(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
+                
+            elif extract_pattern_in_string(graph, "PUND") is not None:
+                plot_pund(capas_to_plot, graph, PATH_INTERIM_DATA, PATH_OUTPUT, process_df, geom_df)
+elif(not(PLOT_RESULT_ENERGY) and SPECIAL and not(PLOT_RESULT_MEAN)):
     chip_names = np.array(process_df.index)
     if SPECIAL_CHIPS != []:
         chip_names = SPECIAL_CHIPS
@@ -111,16 +116,40 @@ else:
         # Étendre la liste de tous les capaciteurs sélectionnés
         capas_to_plot.extend(capas_to_plot_inter)
 
-    print("selected capacitors:",capas_to_plot)
-    print("selected graph:",total_graph)
+    print("selected capacitors:", capas_to_plot)
+    print("selected graph:", total_graph)
 
     ### Plot graphes
     print("\n***** Plotting of graph", SPECIAL_PLOT)
     if extract_pattern_in_string(SPECIAL_PLOT[0], "P-V") is not None:
         plot_PV_special(capas_to_plot, total_graph, PATH_INTERIM_DATA, PATH_OUTPUT, SPECIAL_PLOT, process_df, geom_df)
 
+
+
+SIZES = ['50', '100', '150', 'MEA']
+OBSERVABLES = ['Forward Polarisation PUND 5V ', 'Forward Leakage PUND 5V ']
+process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
+plots_experience(SIZES, OBSERVABLES, process_param_df, PATH_PROCESSED_DATA, PATH_OUTPUT)
+print("Finished generating report plots !")
+
+
+
+
 ### Plot results
 # nom du fichier
-#  fct qui retrouver le bon ficheir
+# fct qui retrouver le bon ficheir
+# Trouvez l'index de la ligne correspondant à la chip spécifique dans la première colonne
 
+if(PLOT_RESULT_ENERGY):
+    if(ELECTRIC_FIELD):
+        plot_energy_data_E_Field(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA, PATH_OUTPUT, THICKNESS)
+    else:
+        plot_energy_data(PATH_PROCESS_PARAM_FILE, CHIP_RESULT_ENERGY, PATH_PROCESSED_DATA, PATH_OUTPUT)
+
+if(PLOT_RESULT_MEAN):
+    SIZES = ['MEA', 50, 100]
+    OBSERVABLES = ['Forward Polarisation PUND 5V', 'Forward Leakage PUND 5V']
+    process_param_df = load_process_param_df(PATH_PROCESS_PARAM_FILE)
+    plots_experience(SIZES, OBSERVABLES, process_param_df, PATH_PROCESSED_DATA, PATH_OUTPUT)
+    print("Finished generating report plots !")
 print("\n***********End*********")
