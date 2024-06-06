@@ -11,7 +11,7 @@ import openpyxl
 from zipfile import BadZipFile
 
 # import functions from other python files
-from tools import extract_pattern_in_string
+from tools import extract_pattern_in_string, get_area_cm2
 from tools import get_chips_from_experience
 from tools import get_experience_from_chip
 from tools import extract_info_in_capa_name
@@ -66,8 +66,10 @@ elif (user == "Océane"):
 #                   "CV 15V_1#1", "CV 18V_1#1", "CV 20V_1#1", "CV 22V_1#1", "CV 23V_1#1", "CV 24V_1#1"
 
 elif (user == "Tom"):
-    print("Error:Need to create your path")
-    exit()
+    PATH_FOLDER = 'C:\\Users\\gaspe\\OneDrive\\Bureau\\EPFL\\Master\\PDM\\common_code\\Projet final'
+    LIST_GRAPH = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
+                  "P-V 10V_1#1","PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
+    
 elif (user == "Thibault"):
     PATH_FOLDER = 'C:\\Users\\Travail\\Desktop\\PDS\\Reports'
     LIST_GRAPH = ["P-V 4V_2#1", "P-V 3V neg_2#1", "PUND 5V_1#1", "PUND 5V neg_1#1", "IV 3V_1#1", "CV 3V_1#1",
@@ -85,18 +87,7 @@ PATH_PROCESS_PARAM_FILE = PATH_FOLDER + '\\User_input\\process_parameter.xlsx'
 PATH_GEOM_PARAM_FILE = PATH_FOLDER + '\\User_input\\geometrical_parameter.xlsx'
 
 
-#***** Function: get_area_cm2 *****
-def get_area_cm2(geom_exp):
-    if PARALLEL_CAPAS:
-        size, para = geom_exp.split("-")
-        nb_x, nb_y = para.split("x")
-    else:
-        size = geom_exp
-        nb_x = 1
-        nb_y = 1
 
-    area = (int(size)*10**(-4))**2 * int(nb_x) * int(nb_y)
-    return area # in cm2
 
 
 #***** Function: extract_capa_info *****
@@ -248,7 +239,7 @@ def load_raw_data(chip_name, geom_param_df, process_param_df):
                 if 'neg' in sheet:
                     negative = ' neg'
                 if 'for' in sheet:
-                    precedent = f"_for{sheet.split('for')[1].split('V')[0]}V"
+                    precedent = f' _for{sheet.split("for")[1].split("V")[0]}V'
 
                 pund_index = sheet_name_list.index(sheet)
                 pund_data = data_list[pund_index]
@@ -328,7 +319,7 @@ def Polarisation(name_files, graph_type):
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
 
             size_phase = len(data['Charge']-1)
 
@@ -366,7 +357,7 @@ def Energy(name_files, graph_type, thickness):
 
         if len(data): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
             Volume = area * thickness
 
             charge_ma = max(data['Charge'])
@@ -404,7 +395,7 @@ def Polarisation_PUND(name_files, negative, graph_type):
 
         if (len(data) > 1 and abs(data['I'][0]) > 10**(-12) and abs(data['I'][1]) > 10**(-12)): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})
@@ -495,7 +486,7 @@ def Leakage_PUND(name_files, negative, graph_type):
 
         if (len(data) > 1 and abs(data['I'][0]) > 10**(-10) and abs(data['I'][1]) > 10**(-10)): # if data is not empty
             geometry = file.split('_')[1]
-            area = get_area_cm2(geometry)
+            area = get_area_cm2(geometry,PARALLEL_CAPAS)
 
             filtered_I      = butter_lowpass_filter(data['I'], data['t'])
             filtered_data   = pd.DataFrame({'t': data['t'], 'I': filtered_I})

@@ -4,18 +4,20 @@ FOLDER = "Energy density plot"
 #Evolution of DE1FE5x8 with 450°C from 5V to 30V for 200µm capacitor
 
 TITLE_ADD_SIZE = True
+TITLE_ADD_AREA = False
 TITLE_ADD_GRAPH = True
 
-NAME = False
-LABEL_EXP = True
-LABEL_NB_EXP = [0, 1, 2]
-LABEL_PLAC = False
-LABEL_GEO = False
+LABEL_NAME = False
 LABEL_GRAPH = False
-LABEL = "" # experience? placement? geometrie? true/false
-SIZE_TITLE = 50
-SIZE_AXIS = 50
-SIZE_GRADUATION = 40
+LABEL_PLAC = True
+LABEL_EXP = False
+LABEL_GEO = False
+LABEL_NB_EXP = []   # put =[] if you want to show all parameters (works only if LABEL_EXP=True)
+                    # put for example =[1,0] if you want to show the first process param but not the second
+
+SIZE_TITLE = 25
+SIZE_AXIS = 25
+SIZE_GRADUATION = 20
 SIZE_PLOTS = (25, 12.5)
 #(25, 12.5)
 #(50, 25)
@@ -29,14 +31,13 @@ BOX_PLACE2 = (0.90, 0.25)
 #En bas à gauche: "lower left" et (0.01, 0.05)
 #En bas à droite: "lower right" et (0.95, 0.05) for energy: (0.98, 0.05)
 
-
-
-#m, μ, n, p
+#m, μ, n, p  ------ not implemented yet
 UNIT_X = "m"
 UNIT_Y = 1
 
-units = ""
+PARALLEL_CAPAS = True
 INTEGRAL = False
+
 # Choose experience
 SELECTED_CHIPS = ["ml4may01","ml4may02", "ml4may03"]
 SELECTED_EXPERIENCES = []
@@ -46,12 +47,12 @@ SELECTED_PLACEMENTS = ["s2-a3", "s1-a1"]
 # --> moyenne ?
 
 # Choose graphes ! several at once
-#GRAPHES_TO_PLOT = ["P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", "P-V 10V_1#1",
-#                   "PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
-GRAPHES_TO_PLOT = ["P-V 25V_1#1"]
-GRAPH_VOLTAGES = ["1"] # currently not used just enter the complet graph name above
+GRAPHES_TO_PLOT = ["P-V 1V_1#1","P-V 2V_1#1","P-V 3V_1#1", "P-V 4V_1#1","P-V 1V_2#1","P-V 2V_2#1","P-V 3V_2#1", 
+                  "P-V 4V_2#1","P-V 5V_1#1", "PUND 5V_1#1", "P-V 7V_1#1", 
+                  "P-V 10V_1#1","PUND 7V_1#1","PUND 10V_1#1", "IV 3V_1#1", "CV 3V_1#1", "IV 5V_1#1", "CV 5V_1#1"]
+#GRAPHES_TO_PLOT = ["P-V 15V_1#1"]
 
-SHOW_PLOTS = True # put False if you don't want to show all plots during plot generation
+SHOW_PLOTS = False # put False if you don't want to show all plots during plot generation
 
 # Choose results to plot
 RESULTS_TO_PLOT = []

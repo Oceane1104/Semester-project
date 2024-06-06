@@ -7,12 +7,13 @@ from scipy.integrate import simps
 from matplotlib.lines import Line2D
 
 
-from tools import butter_lowpass_filter, load_process_param_df, load_geom_param_df, to_float
+from tools import butter_lowpass_filter, to_float, get_area_cm2
 
-from plot_settings import TITLE, LABEL, SIZE_TITLE, SIZE_AXIS, SIZE_LABELS, SIZE_GRADUATION, SIZE_PLOTS, SIZE_LINE, LABEL_EXP, LABEL_PLAC, LABEL_GEO, BOX_PLACE, LOC_PLACE, SHOW_PLOTS, NAME, LABEL_GRAPH, LABEL_NB_EXP
-from plot_settings import TITLE_ADD_SIZE, TITLE_ADD_GRAPH, TABLE_VOLTAGE, BOX_PLACE2, SIZE_GRADUATION,THICKNESS
+from plot_settings import TITLE, SIZE_TITLE, SIZE_AXIS, SIZE_LABELS, SIZE_GRADUATION, SIZE_PLOTS, SIZE_LINE, LABEL_EXP, LABEL_PLAC, LABEL_GEO, BOX_PLACE, LOC_PLACE, SHOW_PLOTS, LABEL_NAME, LABEL_GRAPH, LABEL_NB_EXP
+from plot_settings import TITLE_ADD_SIZE, TITLE_ADD_AREA, TITLE_ADD_GRAPH, PARALLEL_CAPAS, SELECTED_GEOMETRIES, TABLE_VOLTAGE, BOX_PLACE2, SIZE_GRADUATION,THICKNESS
 
 COLORS = ['blue', 'red', 'green', 'orange', 'purple', 'yellow', 'orange', 'cyan', 'brown', 'gray', 'olive', 'pink']
+PATTERNS = [r"P-V \d+V PUND", r"P-V \d+V", r"PUND \d+V", r"IV \d+V", r"CV \d+V"]
 
 #***** Function: load_interim_data *****
 # Loads and returns data for a specific file and graph type
@@ -38,9 +39,12 @@ def load_interim_data(interim_file_name, graph_type, interim_path):
 
 # Fonction pour extraire la partie souhaitée
 def extract_relevant_part(graph_type):
-    pattern = r"P-V \d+V"
-    match = re.search(pattern, graph_type)
-    return match.group(0) if match else graph_type
+    for pattern in PATTERNS:  
+        match = re.search(pattern, graph_type)
+        if match:
+            return match.group(0)
+    return graph_type
+
 
 def extract_voltage(graph_name):
     # Expression régulière pour trouver le motif comme 5v ou 6v
@@ -73,7 +77,7 @@ def define_label_name(file_name, process_df, geom_df, graph_type = ""):
 
     label_name = ""
 
-    if(NAME):
+    if(LABEL_NAME):
         label_name = "Chip: " + chip_name_new 
 
     if (LABEL_GRAPH):
@@ -102,8 +106,30 @@ def define_label_name(file_name, process_df, geom_df, graph_type = ""):
             else:
                 label_name = label_name + ", " + geom_names[i] + ": " + geom_parts[i]
     if (LABEL_PLAC):
-        label_name = label_name + ", Placement: " + placement
+        plac = placement.split("-")
+        for i in range(len(plac)):
+            label_name = label_name + plac[i] + " "
     return label_name
+
+def define_title(graph_type, selected_geometries):
+    Finish_title = f"{TITLE}"
+    if (TITLE_ADD_GRAPH):
+        Finish_title = f"{extract_relevant_part(graph_type)} for {Finish_title}"
+    if (TITLE_ADD_SIZE):
+        if PARALLEL_CAPAS:
+            for geometry in selected_geometries:
+                size = geometry.split("-")[0]
+                array = geometry.split("-")[1]
+                Finish_title = f"{Finish_title} - {size}µm {array}"
+        else:
+            for geometry in selected_geometries:
+                size = geometry.split("-")[0]
+                Finish_title = f"{Finish_title} for {size}µm"
+    if (TITLE_ADD_AREA):
+        for geometry in selected_geometries:
+            area = get_area_cm2(geometry, PARALLEL_CAPAS)
+            Finish_title = f"{Finish_title} - {area}µm2"
+    return Finish_title
 
 #***** Plot functions *****
 def plot_PV(data_list, graph_type, interim_path, output_path, process_df, geom_df):
@@ -118,9 +144,7 @@ def plot_PV(data_list, graph_type, interim_path, output_path, process_df, geom_d
             continue
         nb_plots += 1
         geometrical = file_name.split("_")[1]
-        size = geometrical.split("-")[0]
-        Size_num = int(size)
-        area = (Size_num*10**(-4))**2
+        area = get_area_cm2(geometrical, PARALLEL_CAPAS)
         
         charge_ma = max(data['Charge'])
         charge_mi = min(data['Charge'])
@@ -135,11 +159,8 @@ def plot_PV(data_list, graph_type, interim_path, output_path, process_df, geom_d
     if nb_plots == 0:
         print("No", graph_type, "data available for for capacitors", data_list)
         return
-    Finish_title = f"{TITLE}"
-    if (TITLE_ADD_GRAPH):
-        Finish_title = f"{Finish_title} for {extract_relevant_part(graph_type)}"
-    if (TITLE_ADD_SIZE):
-        Finish_title = f"{Finish_title} for {size}µm"
+
+    Finish_title = define_title(graph_type, SELECTED_GEOMETRIES) 
 
     plt.title(Finish_title, fontsize=SIZE_TITLE)
     plt.xlabel('Voltage [V]', fontsize=SIZE_AXIS)
@@ -172,14 +193,18 @@ def plot_pund(data_list, graph_type, interim_path, output_path, process_df, geom
     if nb_plots == 0:
         print("No", graph_type, "data available for for capacitors", data_list)
         return
-    plt.title(f"{graph_type} {TITLE}", fontsize=SIZE_TITLE)
+    
+    Finish_title = define_title(graph_type, SELECTED_GEOMETRIES)
+
+    plt.title(f"{Finish_title}", fontsize=SIZE_TITLE)
     plt.xlabel('Time [s]', fontsize=SIZE_AXIS)
     plt.ylabel('Current [A]', fontsize=SIZE_AXIS)
     plt.grid(True)
     plt.legend(loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
     plt.tick_params(axis='both', labelsize=SIZE_GRADUATION)
     # Sauvegarder le plot dans le dossier spécifié avec le titre comme nom de fichier
-    plt.savefig(os.path.join(output_path, f"{graph_type}_{TITLE}.png"))
+
+    plt.savefig(os.path.join(output_path, f"{Finish_title}.png"))
     if SHOW_PLOTS:
         plt.show()
     return
@@ -201,14 +226,16 @@ def plot_IV(data_list, graph_type, interim_path, output_path, process_df, geom_d
     if nb_plots == 0:
         print("No", graph_type, "data available for for capacitors", data_list)
         return
-    plt.title(f"{graph_type} {TITLE}", fontsize=SIZE_TITLE)
+    
+    Finish_title = define_title(graph_type, SELECTED_GEOMETRIES) 
+    plt.title(f"{Finish_title}", fontsize=SIZE_TITLE)
     plt.xlabel('Voltage [V]', fontsize=SIZE_AXIS)
     plt.ylabel('Current [A]', fontsize=SIZE_AXIS)
     plt.grid(True)
     plt.legend(loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
     plt.tick_params(axis='both', labelsize=SIZE_GRADUATION)
     # Sauvegarder le plot dans le dossier spécifié avec le titre comme nom de fichier
-    plt.savefig(os.path.join(output_path, f"{graph_type}_{TITLE}.png"))
+    plt.savefig(os.path.join(output_path, f"{Finish_title}.png"))
     if SHOW_PLOTS:
         plt.show()
     return
@@ -229,14 +256,16 @@ def plot_CV(data_list, graph_type, interim_path, output_path, process_df, geom_d
     if nb_plots == 0:
         print("No", graph_type, "data available for for capacitors", data_list)
         return    
-    plt.title(f"{graph_type} {TITLE}", fontsize=SIZE_TITLE)
+    
+    Finish_title = define_title(graph_type, SELECTED_GEOMETRIES) 
+    plt.title(f"{Finish_title}", fontsize=SIZE_TITLE)
     plt.xlabel('Voltage [V]', fontsize=SIZE_AXIS)
-    plt.ylabel('Capacitance [F/m2]', fontsize=SIZE_AXIS)
+    plt.ylabel('Capacitance [F]', fontsize=SIZE_AXIS)
     plt.grid(True)
     plt.legend(loc=LOC_PLACE, bbox_to_anchor=BOX_PLACE, fontsize=SIZE_LABELS)
     plt.tick_params(axis='both', labelsize=SIZE_GRADUATION)
     # Sauvegarder le plot dans le dossier spécifié avec le titre comme nom de fichier
-    plt.savefig(os.path.join(output_path, f"{graph_type}_{TITLE}.png"))
+    plt.savefig(os.path.join(output_path, f"{Finish_title}.png"))
     if SHOW_PLOTS:
         plt.show()
     return
@@ -281,9 +310,9 @@ def plot_PV_special(data_list, graph_type, interim_path, output_path, process_df
             continue
         nb_plots += 1
         geometrical =file_name.split("_")[1]
-        size = geometrical.split("-")[0]
-        Size_num = int(size)
-        area = (Size_num*10**(-4))**2
+        #size = geometrical.split("-")[0]
+        area = get_area_cm2(geometrical, PARALLEL_CAPAS)
+        
         
         charge_ma = max(data['Charge'])
         charge_mi = min(data['Charge'])
@@ -370,9 +399,8 @@ def plot_PV_and_calculate_energy(data_list, graph_type, interim_path, output_pat
             continue
         
         geometrical = file_name.split("_")[1]
-        size = geometrical.split("-")[0]
-        Size_num = int(size)
-        area = (Size_num * 10**(-6)) ** 2
+        #size = geometrical.split("-")[0]
+        area = get_area_cm2(geometrical, PARALLEL_CAPAS)
         
         charge_ma = max(data['Charge'])
         charge_mi = min(data['Charge'])
