@@ -528,11 +528,19 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
         
             ax.set_xlabel(f'{param_names[primary_var]}')
             ax.set_ylabel(f'{column}')
-            if size == 'MEA':
-                ax.set_title(f'{column} - Mean value \nParameters : {param_names[secondary_var]}')
+           
+            if secondary_var[0] != 999:
+                if size == 'MEA':
+                    ax.set_title(f'{column} - Mean value \nParameters : {param_names[secondary_var]}')
+                else:
+                    ax.set_title(f'{column} - {size}x{size}µm² \nParameters : {param_names[secondary_var]}')
+                ax.legend()
             else:
-                ax.set_title(f'{column} - {size}x{size}µm² \nParameters : {param_names[secondary_var]}')
-            ax.legend()
+                if size == 'MEA':
+                    ax.set_title(f'{column} - Mean value')
+                else:
+                    ax.set_title(f'{column} - {size}x{size}µm²')
+                ax.legend()
             
             if secondary_var[0] != 999:
                 secondary_name = "for diff."
