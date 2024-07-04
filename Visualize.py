@@ -654,9 +654,9 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                 
                 for sheetname in xl.sheet_names:
                     df = pd.read_excel(full_path, sheet_name=sheetname)
-                    print(df)
+
                     last_line_given_size = df[df.iloc[:, 1] == size].tail(1) #only retains one measurement for a size
-                    print(last_line_given_size)                   
+                
                     col_values = last_line_given_size[columns]
                     
                     parametres = file.split('_')[0]
@@ -665,8 +665,16 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     temp_param = parametres_list
                     temp_param.extend(list(col_values.values.flatten()))
                     results.append(temp_param)
-        print(results)
         results_np = np.array(results).T
+        #print(results_np)
+        ratio_val = np.array([])
+        columns_tmp = columns
+        if ratio_var[0] != 999:   
+            for i in range(len(results)):
+                ratio_val = np.append(ratio_val, float(results_np[len(parametres_list)-1+ratio_var[0]-1][i])/float(results_np[len(parametres_list)-1+ratio_var[1]-1][i]))
+            results_np = np.vstack((results_np, ratio_val))
+            columns_tmp = np.append(columns_tmp, f'Ratio {columns[ratio_var[0]]} over {columns[ratio_var[1]]}')
+
         secondaries = np.array([])
         if secondary_var[0] != 999:
             for res in range(len(results_np[0])):
@@ -677,8 +685,8 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                     secondaries = [secondary_temp]
                 else:
                     secondaries = np.vstack((secondaries, secondary_temp))
-        primaries = to_float(results_np[primary_var])
-        for i, column in enumerate(columns):
+        primaries = np.array(results_np[primary_var])
+        for i in range(len(columns_tmp)):
             indx = len(parametres_list)-1+i-1
             values = results_np[indx].astype(float)
             unique_secondaries = np.unique(secondaries, axis=0)
@@ -686,7 +694,7 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
             fig, ax = plt.subplots()
             if secondary_var[0] != 999:
                 for k, secondary in enumerate(unique_secondaries):
-                    index = np.where(np.all(secondaries == secondary, axis=1))
+                    index = np.where(np.all(secondaries == secondary, axis=1))[0].astype(int)
                     selected_primaries = primaries[index]
                     selected_values = values[index]
                     unique_primaries = np.unique(selected_primaries)
@@ -707,19 +715,19 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
 
         
             ax.set_xlabel(f'{param_names[primary_var]}')
-            ax.set_ylabel(f'{column}')
+            ax.set_ylabel(f'{columns_tmp[i]}')
            
             if secondary_var[0] != 999:
                 if size == 'MEA':
-                    ax.set_title(f'{column} - Mean value \nParameters : {param_names[secondary_var]}')
+                    ax.set_title(f'{columns_tmp[i]} - Mean value \nParameters : {param_names[secondary_var]}')
                 else:
-                    ax.set_title(f'{column} - {size}x{size}µm² \nParameters : {param_names[secondary_var]}')
+                    ax.set_title(f'{columns_tmp[i]} - {size}x{size}µm² \nParameters : {param_names[secondary_var]}')
                 ax.legend()
             else:
                 if size == 'MEA':
-                    ax.set_title(f'{column} - Mean value')
+                    ax.set_title(f'{columns_tmp[i]} - Mean value')
                 else:
-                    ax.set_title(f'{column} - {size}x{size}µm²')
+                    ax.set_title(f'{columns_tmp[i]} - {size}x{size}µm²')
                 ax.legend()
             
             if secondary_var[0] != 999:
@@ -727,17 +735,19 @@ def plots_experience(sizes, columns, process_param_df, path_processed_data, path
                 for j in range(len(param_names[secondary_var])):
                     secondary_name = secondary_name + ' ' + param_names[secondary_var][j]
                 if size == 'MEA':
-                    filename = f'Report - {column} v. {param_names[primary_var]} comparison {secondary_name}.png'
+                    filename = f'Report - {columns_tmp[i]} v. {param_names[primary_var]} comparison {secondary_name}.png'
                 else:
-                    filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison {secondary_name}.png'
+                    filename = f'Report - {size}um2 - {columns_tmp[i]} v. {param_names[primary_var]} comparison {secondary_name}.png'
             else:
                 if size == 'MEA':
-                    filename = f'Report - {column} v. {param_names[primary_var]} comparison.png'
+                    filename = f'Report - {columns_tmp[i]} v. {param_names[primary_var]} comparison.png'
                 else:
-                    filename = f'Report - {size}um2 - {column} v. {param_names[primary_var]} comparison.png'
+                    filename = f'Report - {size}um2 - {columns_tmp[i]} v. {param_names[primary_var]} comparison.png'
 
 
             # Chemin complet pour enregistrer le fichier
+            print(path_output)
+            print(filename)
             full_path = os.path.join(path_output, filename)
 
             # Enregistrer le graphique dans le dossier spécifié
